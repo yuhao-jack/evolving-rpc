@@ -10,6 +10,7 @@ import (
 	"gitee.com/yuhao-jack/go-toolx/netx"
 	"log"
 	"net"
+	"sync"
 )
 
 var logger = log.Default()
@@ -23,6 +24,8 @@ func init() {
 type EvolvingServer struct {
 	conf            *model.EvolvingServerConf
 	dataPackChanMap map[*netx.DataPack]chan netx.IMessage
+	commands        map[string]func(dataPack *netx.DataPack, reply netx.IMessage)
+	lock            sync.RWMutex
 }
 
 // NewEvolvingServer
@@ -31,7 +34,14 @@ type EvolvingServer struct {
 //	@param conf
 //	@return *EvolvingServer
 func NewEvolvingServer(conf *model.EvolvingServerConf) *EvolvingServer {
-	return &EvolvingServer{conf: conf, dataPackChanMap: make(map[*netx.DataPack]chan netx.IMessage)}
+	evolvingServer := EvolvingServer{conf: conf, dataPackChanMap: make(map[*netx.DataPack]chan netx.IMessage)}
+	evolvingServer.SetCommand(contents.ALive, func(dataPack *netx.DataPack, reply netx.IMessage) {
+		evolvingServer.sendMsg(dataPack, netx.NewDefaultMessage([]byte(contents.ALive), []byte(contents.OK)))
+	})
+	evolvingServer.SetCommand(contents.Default, func(dataPack *netx.DataPack, reply netx.IMessage) {
+		evolvingServer.sendMsg(dataPack, netx.NewDefaultMessage([]byte(contents.Default), []byte(contents.OK)))
+	})
+	return &evolvingServer
 }
 
 // Start
@@ -45,6 +55,7 @@ func (s *EvolvingServer) Start() {
 		logger.Println("start evolving-server failed,err:", err)
 		return
 	}
+	logger.Println("start evolving-server successful.")
 	for {
 		tcpConn, err := tcpListener.AcceptTCP()
 		if err != nil {
@@ -79,20 +90,49 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 			logger.Println(err)
 			break
 		}
-		if f, ok := commands[string(message.GetCommand())]; ok {
-			f(message, &dataPack, s.sendMsg)
+		if f, ok := s.commands[string(message.GetCommand())]; ok {
+			f(&dataPack, message)
 		} else {
-			commands[contents.Default](message, &dataPack, s.sendMsg)
+			s.commands[contents.Default](&dataPack, message)
 		}
 	}
 }
 
-var commands = map[string]func(message netx.IMessage, dataPack *netx.DataPack,
-	sendMsg func(dataPack *netx.DataPack, message netx.IMessage)){
-	contents.ALive:    KeepAlive,
-	contents.Register: Register,
-	contents.DisCover: DisCover,
-	contents.Default:  Default,
+// Execute
+//
+//	@Description:
+//	@receiver s
+//	@param dataPack
+//	@param req
+//	@param callBack
+func (s *EvolvingServer) Execute(dataPack *netx.DataPack, req netx.IMessage, callBack func(dataPack *netx.DataPack, reply netx.IMessage)) {
+	s.SetCommand(string(req.GetCommand()), callBack)
+	s.sendMsg(dataPack, req)
+}
+
+// SetCommand
+//
+//	@Description:
+//	@receiver s
+//	@param command
+//	@param f
+func (s *EvolvingServer) SetCommand(command string, f func(dataPack *netx.DataPack, reply netx.IMessage)) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.commands[command] = f
+}
+
+// GetCommand
+//
+//	@Description:
+//	@receiver s
+//	@param command
+//	@return f
+func (s *EvolvingServer) GetCommand(command string) (f func(dataPack *netx.DataPack, reply netx.IMessage)) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	f = s.commands[command]
+	return
 }
 
 // broadCast
@@ -111,9 +151,13 @@ func (s *EvolvingServer) broadCast(msg netx.IMessage) {
 //	@param dataPack
 //	@param message
 func (s *EvolvingServer) sendMsg(dataPack *netx.DataPack, message netx.IMessage) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	_, ok := s.dataPackChanMap[dataPack]
 	if !ok {
+		s.lock.Lock()
 		s.dataPackChanMap[dataPack] = make(chan netx.IMessage, 1024)
+		s.lock.Unlock()
 		go func() {
 			for {
 				select {
@@ -127,7 +171,6 @@ func (s *EvolvingServer) sendMsg(dataPack *netx.DataPack, message netx.IMessage)
 						logger.Println(dataPack.RemoteAddr().String(), " closed")
 						break
 					}
-
 				}
 			}
 		}()
