@@ -129,10 +129,11 @@ func (c *EvolvingClient) processMsg() {
 			logger.Println(err)
 			break
 		}
-		if f, ok := c.commands[string(message.GetCommand())]; ok {
+		f := c.GetCommand(string(message.GetCommand()))
+		if f != nil {
 			f(message)
 		} else {
-			c.commands[contents.Default](message)
+			c.GetCommand(contents.Default)(message)
 		}
 	}
 }

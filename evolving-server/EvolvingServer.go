@@ -35,11 +35,21 @@ type EvolvingServer struct {
 //	@return *EvolvingServer
 func NewEvolvingServer(conf *model.EvolvingServerConf) *EvolvingServer {
 	evolvingServer := EvolvingServer{conf: conf, dataPackChanMap: make(map[*netx.DataPack]chan netx.IMessage)}
+	//  heartbeat
 	evolvingServer.SetCommand(contents.ALive, func(dataPack *netx.DataPack, reply netx.IMessage) {
 		evolvingServer.sendMsg(dataPack, netx.NewDefaultMessage([]byte(contents.ALive), []byte(contents.OK)))
 	})
+	//  default
 	evolvingServer.SetCommand(contents.Default, func(dataPack *netx.DataPack, reply netx.IMessage) {
-		evolvingServer.sendMsg(dataPack, netx.NewDefaultMessage([]byte(contents.Default), []byte(contents.OK)))
+		Default(reply, dataPack, evolvingServer.sendMsg)
+	})
+	//  register
+	evolvingServer.SetCommand(contents.Register, func(dataPack *netx.DataPack, reply netx.IMessage) {
+		Register(reply, dataPack, evolvingServer.sendMsg)
+	})
+	// discover
+	evolvingServer.SetCommand(contents.DisCover, func(dataPack *netx.DataPack, reply netx.IMessage) {
+		DisCover(reply, dataPack, evolvingServer.sendMsg)
 	})
 	return &evolvingServer
 }
@@ -82,7 +92,7 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 		}
 		close(s.dataPackChanMap[&dataPack])
 		delete(s.dataPackChanMap, &dataPack)
-		s.broadCast(netx.NewDefaultMessage([]byte("connect_closed"), []byte(dataPack.RemoteAddr().String()+" closed")))
+		s.broadCast(netx.NewDefaultMessage([]byte(contents.ConnectClosed), []byte(dataPack.RemoteAddr().String()+" closed")))
 	}()
 	for {
 		message, err := dataPack.UnPackMessage()
@@ -90,10 +100,12 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 			logger.Println(err)
 			break
 		}
-		if f, ok := s.commands[string(message.GetCommand())]; ok {
+
+		f := s.GetCommand(string(message.GetCommand()))
+		if f != nil {
 			f(&dataPack, message)
 		} else {
-			s.commands[contents.Default](&dataPack, message)
+			s.GetCommand(contents.Default)(&dataPack, message)
 		}
 	}
 }
