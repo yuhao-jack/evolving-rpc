@@ -162,6 +162,18 @@ func (c *EvolvingClient) RegisterService(info *model.ServiceInfo, callBack func(
 	return nil
 }
 
-func (c *EvolvingClient) DisCover(serviceName string, callBack func(reply netx.IMessage)) {
-
+// DisCover
+//
+//	@Description:
+//	@receiver c
+//	@param serviceName
+//	@param callBack
+//	@return error
+func (c *EvolvingClient) DisCover(serviceName string, callBack func(reply netx.IMessage)) error {
+	if serviceName == "" {
+		return errors.New("serviceName is nil ")
+	}
+	iMessage := netx.NewDefaultMessage([]byte(contents.DisCover), []byte(serviceName))
+	c.Execute(iMessage, callBack)
+	return nil
 }
