@@ -39,6 +39,7 @@ func NewEvolvingClient(conf *model.EvolvingClientConfig) *EvolvingClient {
 	evolvingClient.SetCommand(contents.Default, func(reply netx.IMessage) {
 		logger.Println(string(reply.GetCommand()), string(reply.GetBody()))
 	})
+	go evolvingClient.processMsg()
 	go evolvingClient.sendMsg()
 	return &evolvingClient
 }
