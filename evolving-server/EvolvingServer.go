@@ -151,7 +151,7 @@ func (s *EvolvingServer) GetCommand(command string) (f func(dataPack *netx.DataP
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	f = s.commands[command]
-	return
+	return f
 }
 
 // broadCast

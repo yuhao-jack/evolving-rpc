@@ -79,7 +79,7 @@ func (c *EvolvingClient) GetCommand(command string) (f func(reply netx.IMessage)
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	f = c.commands[command]
-	return
+	return f
 }
 
 // start
