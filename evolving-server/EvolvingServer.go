@@ -34,7 +34,12 @@ type EvolvingServer struct {
 //	@param conf
 //	@return *EvolvingServer
 func NewEvolvingServer(conf *model.EvolvingServerConf) *EvolvingServer {
-	evolvingServer := EvolvingServer{conf: conf, dataPackChanMap: make(map[*netx.DataPack]chan netx.IMessage)}
+	evolvingServer := EvolvingServer{
+		conf:            conf,
+		dataPackChanMap: make(map[*netx.DataPack]chan netx.IMessage),
+		commands:        make(map[string]func(dataPack *netx.DataPack, reply netx.IMessage)),
+		lock:            sync.RWMutex{},
+	}
 	//  heartbeat
 	evolvingServer.SetCommand(contents.ALive, func(dataPack *netx.DataPack, reply netx.IMessage) {
 		evolvingServer.sendMsg(dataPack, netx.NewDefaultMessage([]byte(contents.ALive), []byte(contents.OK)))
