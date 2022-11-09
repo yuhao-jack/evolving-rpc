@@ -95,7 +95,9 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 		if err != nil {
 			logger.Println(err)
 		}
-		close(s.dataPackChanMap[&dataPack])
+		if s.dataPackChanMap[&dataPack] != nil {
+			close(s.dataPackChanMap[&dataPack])
+		}
 		delete(s.dataPackChanMap, &dataPack)
 		s.broadCast(netx.NewDefaultMessage([]byte(contents.ConnectClosed), []byte(dataPack.RemoteAddr().String()+" closed")))
 	}()
