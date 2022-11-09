@@ -138,10 +138,9 @@ func (s *EvolvingServer) Execute(dataPack *netx.DataPack, req netx.IMessage, cal
 func (s *EvolvingServer) SetCommand(command string, f func(dataPack *netx.DataPack, reply netx.IMessage)) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	if f == nil {
-		logger.Println("command :%s ,f will be set nil")
+	if f != nil {
+		s.commands[command] = f
 	}
-	s.commands[command] = f
 }
 
 // GetCommand
