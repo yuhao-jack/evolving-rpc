@@ -34,7 +34,11 @@ type EvolvingClient struct {
 //	@param conf
 //	@return *EvolvingClient
 func NewEvolvingClient(conf *model.EvolvingClientConfig) *EvolvingClient {
-	evolvingClient := EvolvingClient{msgChan: make(chan netx.IMessage, 1024), conf: conf, commands: make(map[string]func(message netx.IMessage))}
+	evolvingClient := EvolvingClient{msgChan: make(chan netx.IMessage, 1024),
+		conf:     conf,
+		commands: make(map[string]func(message netx.IMessage)),
+		lock:     &lockx.ReentrantMutex{},
+	}
 	evolvingClient.start()
 	evolvingClient.SetCommand(contents.Default, func(reply netx.IMessage) {
 		logger.Println(string(reply.GetCommand()), string(reply.GetBody()))
