@@ -7,10 +7,10 @@ import (
 	"gitee.com/yuhao-jack/evolving-rpc/errorx"
 	"gitee.com/yuhao-jack/evolving-rpc/evolving-server/svr_mgr"
 	"gitee.com/yuhao-jack/evolving-rpc/model"
-	"gitee.com/yuhao-jack/go-toolx/lockx"
 	"gitee.com/yuhao-jack/go-toolx/netx"
 	"log"
 	"net"
+	"sync"
 )
 
 var logger = log.Default()
@@ -25,7 +25,8 @@ type EvolvingServer struct {
 	conf            *model.EvolvingServerConf
 	dataPackChanMap map[*netx.DataPack]chan netx.IMessage
 	commands        map[string]func(dataPack *netx.DataPack, reply netx.IMessage)
-	lock            *lockx.ReentrantMutex
+	dataPackLock    *sync.RWMutex
+	commandLock     *sync.RWMutex
 }
 
 // NewEvolvingServer
@@ -38,7 +39,8 @@ func NewEvolvingServer(conf *model.EvolvingServerConf) *EvolvingServer {
 		conf:            conf,
 		dataPackChanMap: make(map[*netx.DataPack]chan netx.IMessage),
 		commands:        make(map[string]func(dataPack *netx.DataPack, reply netx.IMessage)),
-		lock:            &lockx.ReentrantMutex{},
+		commandLock:     &sync.RWMutex{},
+		dataPackLock:    &sync.RWMutex{},
 	}
 	//  heartbeat
 	evolvingServer.SetCommand(contents.ALive, func(dataPack *netx.DataPack, reply netx.IMessage) {
@@ -136,8 +138,8 @@ func (s *EvolvingServer) Execute(dataPack *netx.DataPack, req netx.IMessage, cal
 //	@param command
 //	@param f
 func (s *EvolvingServer) SetCommand(command string, f func(dataPack *netx.DataPack, reply netx.IMessage)) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.commandLock.Lock()
+	defer s.commandLock.Unlock()
 	if f != nil {
 		s.commands[command] = f
 	}
@@ -150,10 +152,37 @@ func (s *EvolvingServer) SetCommand(command string, f func(dataPack *netx.DataPa
 //	@param command
 //	@return f
 func (s *EvolvingServer) GetCommand(command string) (f func(dataPack *netx.DataPack, reply netx.IMessage)) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.commandLock.RLock()
+	defer s.commandLock.RUnlock()
 	f = s.commands[command]
 	return f
+}
+
+// SetDataPackChanMap
+//
+//	@Description:
+//	@receiver s
+//	@param dataPack
+//	@param c
+func (s *EvolvingServer) SetDataPackChanMap(dataPack *netx.DataPack, c chan netx.IMessage) {
+	s.dataPackLock.Lock()
+	defer s.dataPackLock.Unlock()
+	if c != nil {
+		s.dataPackChanMap[dataPack] = c
+	}
+}
+
+// GetDataPackChanMap
+//
+//	@Description:
+//	@receiver s
+//	@param dataPack
+//	@return c
+func (s *EvolvingServer) GetDataPackChanMap(dataPack *netx.DataPack) (c chan netx.IMessage) {
+	s.dataPackLock.RLock()
+	defer s.dataPackLock.RUnlock()
+	c = s.dataPackChanMap[dataPack]
+	return c
 }
 
 // broadCast
@@ -172,17 +201,13 @@ func (s *EvolvingServer) broadCast(msg netx.IMessage) {
 //	@param dataPack
 //	@param message
 func (s *EvolvingServer) sendMsg(dataPack *netx.DataPack, message netx.IMessage) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	_, ok := s.dataPackChanMap[dataPack]
-	if !ok {
-		s.lock.Lock()
-		s.dataPackChanMap[dataPack] = make(chan netx.IMessage, 1024)
-		s.lock.Unlock()
+	dataPackChanMap := s.GetDataPackChanMap(dataPack)
+	if dataPackChanMap == nil {
+		s.SetDataPackChanMap(dataPack, make(chan netx.IMessage, 1024))
 		go func() {
 			for {
 				select {
-				case msg, ok := <-s.dataPackChanMap[dataPack]:
+				case msg, ok := <-s.GetDataPackChanMap(dataPack):
 					if ok {
 						err := dataPack.PackMessage(msg)
 						if err != nil {
@@ -196,7 +221,7 @@ func (s *EvolvingServer) sendMsg(dataPack *netx.DataPack, message netx.IMessage)
 			}
 		}()
 	}
-	s.dataPackChanMap[dataPack] <- message
+	s.GetDataPackChanMap(dataPack) <- message
 }
 
 // KeepAlive

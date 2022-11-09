@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"gitee.com/yuhao-jack/evolving-rpc/contents"
 	"gitee.com/yuhao-jack/evolving-rpc/model"
-	"gitee.com/yuhao-jack/go-toolx/lockx"
 	"gitee.com/yuhao-jack/go-toolx/netx"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -25,7 +25,7 @@ type EvolvingClient struct {
 	dataPack *netx.DataPack
 	conf     *model.EvolvingClientConfig
 	commands map[string]func(message netx.IMessage)
-	lock     *lockx.ReentrantMutex
+	lock     *sync.RWMutex
 }
 
 // NewEvolvingClient
@@ -37,7 +37,7 @@ func NewEvolvingClient(conf *model.EvolvingClientConfig) *EvolvingClient {
 	evolvingClient := EvolvingClient{msgChan: make(chan netx.IMessage, 1024),
 		conf:     conf,
 		commands: make(map[string]func(message netx.IMessage)),
-		lock:     &lockx.ReentrantMutex{},
+		lock:     &sync.RWMutex{},
 	}
 	evolvingClient.start()
 	evolvingClient.SetCommand(contents.Default, func(reply netx.IMessage) {
@@ -80,8 +80,8 @@ func (c *EvolvingClient) SetCommand(command string, f func(reply netx.IMessage))
 //	@param command
 //	@return f
 func (c *EvolvingClient) GetCommand(command string) (f func(reply netx.IMessage)) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	f = c.commands[command]
 	return f
 }
