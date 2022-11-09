@@ -2,11 +2,11 @@ package evolving_server
 
 import (
 	"encoding/json"
-	"evolving-rpc/contents"
-	"evolving-rpc/errorx"
-	"evolving-rpc/evolving-server/svr_mgr"
-	"evolving-rpc/model"
 	"fmt"
+	"gitee.com/yuhao-jack/evolving-rpc/contents"
+	"gitee.com/yuhao-jack/evolving-rpc/errorx"
+	"gitee.com/yuhao-jack/evolving-rpc/evolving-server/svr_mgr"
+	"gitee.com/yuhao-jack/evolving-rpc/model"
 	"gitee.com/yuhao-jack/go-toolx/netx"
 	"log"
 	"net"

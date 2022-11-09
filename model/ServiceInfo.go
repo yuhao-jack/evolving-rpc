@@ -1,6 +1,6 @@
 package model
 
-import "mini-dfs/contents"
+import "gitee.com/yuhao-jack/evolving-rpc/contents"
 
 type ServiceInfo struct {
 	ServiceName    string                 `json:"service_name"`    //服务名

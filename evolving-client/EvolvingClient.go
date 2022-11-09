@@ -1,9 +1,9 @@
 package evolving_client
 
 import (
-	"evolving-rpc/contents"
-	"evolving-rpc/model"
 	"fmt"
+	"gitee.com/yuhao-jack/evolving-rpc/contents"
+	"gitee.com/yuhao-jack/evolving-rpc/model"
 	"gitee.com/yuhao-jack/go-toolx/netx"
 	"log"
 	"sync"

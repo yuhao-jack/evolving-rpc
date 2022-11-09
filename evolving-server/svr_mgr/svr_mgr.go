@@ -1,7 +1,7 @@
 package svr_mgr
 
 import (
-	"evolving-rpc/model"
+	"gitee.com/yuhao-jack/evolving-rpc/model"
 	"gitee.com/yuhao-jack/go-toolx/netx"
 	"sync"
 )
