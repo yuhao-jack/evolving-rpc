@@ -1,6 +1,8 @@
 package evolving_client
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"gitee.com/yuhao-jack/evolving-rpc/contents"
 	"gitee.com/yuhao-jack/evolving-rpc/model"
@@ -48,7 +50,9 @@ func NewEvolvingClient(conf *model.EvolvingClientConfig) *EvolvingClient {
 //	@param req
 //	@param callBack
 func (c *EvolvingClient) Execute(req netx.IMessage, callBack func(reply netx.IMessage)) {
-	c.SetCommand(string(req.GetCommand()), callBack)
+	if callBack != nil {
+		c.SetCommand(string(req.GetCommand()), callBack)
+	}
 	c.msgChan <- req
 }
 
@@ -136,4 +140,28 @@ func (c *EvolvingClient) processMsg() {
 			c.GetCommand(contents.Default)(message)
 		}
 	}
+}
+
+// RegisterService
+//
+//	@Description:
+//	@receiver c
+//	@param info
+//	@param callBack
+//	@return error
+func (c *EvolvingClient) RegisterService(info *model.ServiceInfo, callBack func(reply netx.IMessage)) error {
+	if info == nil {
+		return errors.New("info or dataPack is nil")
+	}
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return err
+	}
+	iMessage := netx.NewDefaultMessage([]byte(contents.Register), bytes)
+	c.Execute(iMessage, callBack)
+	return nil
+}
+
+func (c *EvolvingClient) DisCover(serviceName string, callBack func(reply netx.IMessage)) {
+
 }
