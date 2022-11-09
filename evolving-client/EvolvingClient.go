@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"gitee.com/yuhao-jack/evolving-rpc/contents"
 	"gitee.com/yuhao-jack/evolving-rpc/model"
+	"gitee.com/yuhao-jack/go-toolx/fun"
 	"gitee.com/yuhao-jack/go-toolx/netx"
+	"github.com/bytedance/gopkg/util/gopool"
 	"log"
 	"sync"
 	"time"
@@ -139,11 +141,8 @@ func (c *EvolvingClient) processMsg() {
 			break
 		}
 		f := c.GetCommand(string(message.GetCommand()))
-		if f != nil {
-			f(message)
-		} else {
-			c.GetCommand(contents.Default)(message)
-		}
+		gopool.Go(func() { fun.IfOr(f != nil, f, c.GetCommand(contents.Default))(message) })
+
 	}
 }
 

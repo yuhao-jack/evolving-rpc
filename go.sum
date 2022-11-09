@@ -4,3 +4,13 @@ gitee.com/yuhao-jack/go-toolx v0.0.0-20221109035340-a3e1b9f150ef h1:evAOn+9l4bCh
 gitee.com/yuhao-jack/go-toolx v0.0.0-20221109035340-a3e1b9f150ef/go.mod h1:GUK8Dtl6QD+qfRms/xjSWj0rdh67tjt3HaEWUqeLDEE=
 gitee.com/yuhao-jack/go-toolx v0.0.0-20221109090430-9e518df79f5c h1:5+dr8DsrqG4LZrmHNe9PTL7wqBheYiFF4+yGgbzySDk=
 gitee.com/yuhao-jack/go-toolx v0.0.0-20221109090430-9e518df79f5c/go.mod h1:GUK8Dtl6QD+qfRms/xjSWj0rdh67tjt3HaEWUqeLDEE=
+github.com/bytedance/gopkg v0.0.0-20221028032628-1c5718bfa764 h1:qB0nUno3+AinseVV6OkLmrumFGoBdSbFTn7nHl/4nEk=
+github.com/bytedance/gopkg v0.0.0-20221028032628-1c5718bfa764/go.mod h1:5FoAH5xUHHCMDvQPy1rnj8moqLkLHFaDVBjHhcFwEi0=
+github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
+github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+golang.org/x/sync v0.0.0-20210220032951-036812b2e83c/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sys v0.0.0-20221010170243-090e33056c14/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=

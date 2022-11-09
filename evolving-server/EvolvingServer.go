@@ -7,7 +7,9 @@ import (
 	"gitee.com/yuhao-jack/evolving-rpc/errorx"
 	"gitee.com/yuhao-jack/evolving-rpc/evolving-server/svr_mgr"
 	"gitee.com/yuhao-jack/evolving-rpc/model"
+	"gitee.com/yuhao-jack/go-toolx/fun"
 	"gitee.com/yuhao-jack/go-toolx/netx"
+	"github.com/bytedance/gopkg/util/gopool"
 	"log"
 	"net"
 	"sync"
@@ -111,11 +113,9 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 		}
 
 		f := s.GetCommand(string(message.GetCommand()))
-		if f != nil {
-			f(&dataPack, message)
-		} else {
-			s.GetCommand(contents.Default)(&dataPack, message)
-		}
+		fun := fun.IfOr(f != nil, f, s.GetCommand(contents.Default))
+		gopool.Go(func() { fun(&dataPack, message) })
+
 	}
 }
 
