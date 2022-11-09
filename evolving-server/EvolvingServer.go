@@ -7,10 +7,10 @@ import (
 	"gitee.com/yuhao-jack/evolving-rpc/errorx"
 	"gitee.com/yuhao-jack/evolving-rpc/evolving-server/svr_mgr"
 	"gitee.com/yuhao-jack/evolving-rpc/model"
+	"gitee.com/yuhao-jack/go-toolx/lockx"
 	"gitee.com/yuhao-jack/go-toolx/netx"
 	"log"
 	"net"
-	"sync"
 )
 
 var logger = log.Default()
@@ -25,7 +25,7 @@ type EvolvingServer struct {
 	conf            *model.EvolvingServerConf
 	dataPackChanMap map[*netx.DataPack]chan netx.IMessage
 	commands        map[string]func(dataPack *netx.DataPack, reply netx.IMessage)
-	lock            sync.RWMutex
+	lock            *lockx.ReentrantMutex
 }
 
 // NewEvolvingServer
@@ -38,7 +38,7 @@ func NewEvolvingServer(conf *model.EvolvingServerConf) *EvolvingServer {
 		conf:            conf,
 		dataPackChanMap: make(map[*netx.DataPack]chan netx.IMessage),
 		commands:        make(map[string]func(dataPack *netx.DataPack, reply netx.IMessage)),
-		lock:            sync.RWMutex{},
+		lock:            &lockx.ReentrantMutex{},
 	}
 	//  heartbeat
 	evolvingServer.SetCommand(contents.ALive, func(dataPack *netx.DataPack, reply netx.IMessage) {
@@ -148,8 +148,8 @@ func (s *EvolvingServer) SetCommand(command string, f func(dataPack *netx.DataPa
 //	@param command
 //	@return f
 func (s *EvolvingServer) GetCommand(command string) (f func(dataPack *netx.DataPack, reply netx.IMessage)) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	f = s.commands[command]
 	return f
 }
@@ -170,8 +170,8 @@ func (s *EvolvingServer) broadCast(msg netx.IMessage) {
 //	@param dataPack
 //	@param message
 func (s *EvolvingServer) sendMsg(dataPack *netx.DataPack, message netx.IMessage) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	_, ok := s.dataPackChanMap[dataPack]
 	if !ok {
 		s.lock.Lock()
