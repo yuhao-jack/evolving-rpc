@@ -8,7 +8,6 @@ import (
 	"gitee.com/yuhao-jack/evolving-rpc/model"
 	"gitee.com/yuhao-jack/go-toolx/fun"
 	"gitee.com/yuhao-jack/go-toolx/netx"
-	"github.com/bytedance/gopkg/util/gopool"
 	"log"
 	"sync"
 	"time"
@@ -41,7 +40,7 @@ func NewEvolvingClient(conf *model.EvolvingClientConfig) *EvolvingClient {
 		commands: make(map[string]func(message netx.IMessage)),
 		lock:     &sync.RWMutex{},
 	}
-	evolvingClient.start()
+	evolvingClient.createConn()
 	evolvingClient.SetCommand(contents.Default, func(reply netx.IMessage) {
 		logger.Println(string(reply.GetCommand()), string(reply.GetBody()))
 	})
@@ -92,7 +91,7 @@ func (c *EvolvingClient) GetCommand(command string) (f func(reply netx.IMessage)
 //
 //	@Description:
 //	@receiver c
-func (c *EvolvingClient) start() {
+func (c *EvolvingClient) createConn() {
 	conn, err := netx.CreateTcpConn(fmt.Sprintf("%s:%d", c.conf.EvolvingServerHost, c.conf.EvolvingServerPort))
 	if err != nil {
 		logger.Println("start evolving-client failed,err:", err)
@@ -141,7 +140,7 @@ func (c *EvolvingClient) processMsg() {
 			break
 		}
 		f := c.GetCommand(string(message.GetCommand()))
-		gopool.Go(func() { fun.IfOr(f != nil, f, c.GetCommand(contents.Default))(message) })
+		fun.IfOr(f != nil, f, c.GetCommand(contents.Default))(message)
 
 	}
 }
