@@ -113,7 +113,6 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 
 		f := s.GetCommand(string(message.GetCommand()))
 		fun.IfOr(f != nil, f, s.GetCommand(contents.Default))(&dataPack, message)
-
 	}
 }
 

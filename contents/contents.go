@@ -8,6 +8,10 @@ const (
 	Default       = "DEFAULT"
 	ConnectClosed = "CONNECT_CLOSED"
 )
+const (
+	Json = "json"
+	Pb   = "pb"
+)
 
 type ServiceProtoc string
 

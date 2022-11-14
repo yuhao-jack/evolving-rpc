@@ -141,7 +141,6 @@ func (c *EvolvingClient) processMsg() {
 		}
 		f := c.GetCommand(string(message.GetCommand()))
 		fun.IfOr(f != nil, f, c.GetCommand(contents.Default))(message)
-
 	}
 }
 
