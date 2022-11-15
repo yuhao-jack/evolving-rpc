@@ -1,6 +1,6 @@
 package model
 
-import "gitee.com/yuhao-jack/evolving-rpc/contents"
+import "github.com/yuhao-jack/evolving-rpc/contents"
 
 type ServiceInfo struct {
 	ServiceName    string                 `json:"service_name"`    //服务名

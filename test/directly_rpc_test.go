@@ -2,9 +2,9 @@ package test
 
 import (
 	"encoding/json"
-	evolving_client "gitee.com/yuhao-jack/evolving-rpc/evolving-client"
-	evolving_server "gitee.com/yuhao-jack/evolving-rpc/evolving-server"
-	"gitee.com/yuhao-jack/evolving-rpc/model"
+	evolving_client "github.com/yuhao-jack/evolving-rpc/evolving-client"
+	evolving_server "github.com/yuhao-jack/evolving-rpc/evolving-server"
+	"github.com/yuhao-jack/evolving-rpc/model"
 	"log"
 	"testing"
 	"time"
