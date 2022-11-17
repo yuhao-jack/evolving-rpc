@@ -12,19 +12,34 @@ import (
 	"strings"
 )
 
+// DirectlyRpcServerConfig
+// @Description: 直连模式下的RPC的服务端的配置
 type DirectlyRpcServerConfig struct {
 	model.EvolvingServerConf
 }
 
+// DirectlyRpcServer
+// @Description: 直连模式下的RPC服务端
 type DirectlyRpcServer struct {
 	serviceMap     map[string]*service
 	evolvingServer *EvolvingServer
 }
 
+// NewDirectlyRpcServer
+//
+//	@Description: 创建一个直连模式下的RPC服务端
+//	@param config 直连模式下的RPC的服务端的配置
+//	@return *DirectlyRpcServer 直连模式下的RPC服务端
 func NewDirectlyRpcServer(config *DirectlyRpcServerConfig) *DirectlyRpcServer {
 	return &DirectlyRpcServer{evolvingServer: NewEvolvingServer(&config.EvolvingServerConf), serviceMap: map[string]*service{}}
 }
 
+// Register
+//
+//	@Description: 注册服务
+//	@receiver d
+//	@param rcvr 具体服务对象的指针
+//	@return error 注册失败时的错误信息
 func (d *DirectlyRpcServer) Register(rcvr any) error {
 	s := new(service)
 	s.typ = reflect.TypeOf(rcvr)
@@ -42,6 +57,11 @@ func (d *DirectlyRpcServer) Register(rcvr any) error {
 	d.serviceMap[s.name] = s
 	return nil
 }
+
+// Run
+//
+//	@Description: 直连模式下的RPC服务端的启动（该方法阻塞）
+//	@receiver d
 func (d *DirectlyRpcServer) Run() {
 	for n, server := range d.serviceMap {
 		for s := range server.method {

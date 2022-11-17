@@ -21,7 +21,7 @@ func init() {
 }
 
 // EvolvingServer
-// @Description:
+// @Description: 服务端连接（非RPC服务端）
 type EvolvingServer struct {
 	conf            *model.EvolvingServerConf
 	dataPackChanMap map[*netx.DataPack]chan netx.IMessage
@@ -32,8 +32,8 @@ type EvolvingServer struct {
 
 // NewEvolvingServer
 //
-//	@Description:
-//	@param conf
+//	@Description: 创建一个服务端连接（非RPC服务端）
+//	@param conf 创建服务端的配置
 //	@return *EvolvingServer
 func NewEvolvingServer(conf *model.EvolvingServerConf) *EvolvingServer {
 	evolvingServer := EvolvingServer{
@@ -64,9 +64,8 @@ func NewEvolvingServer(conf *model.EvolvingServerConf) *EvolvingServer {
 
 // Start
 //
-//	@Description:
+//	@Description: 启动服务端
 //	@receiver s
-//	@param conf
 func (s *EvolvingServer) Start() {
 	tcpListener, err := netx.CreateTCPListener(fmt.Sprintf("%s:%d", s.conf.BindHost, s.conf.ServerPort))
 	if err != nil {
@@ -86,13 +85,13 @@ func (s *EvolvingServer) Start() {
 
 // connHandler
 //
-//	@Description:
-//	@param conn
+//	@Description: 新建连接处理
+//	@param conn 客户端连接
 func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 	dataPack := netx.DataPack{Conn: conn}
 	svr_mgr.GetServiceMgrInstance().AddDataPack(&dataPack)
 
-	defer func() {
+	defer func() { // 客户端端开后广播到其他客户端
 		svr_mgr.GetServiceMgrInstance().DelDataPack(&dataPack)
 		err := conn.Close()
 		if err != nil {
@@ -118,7 +117,7 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 
 // Execute
 //
-//	@Description:
+//	@Description: 执行命令
 //	@receiver s
 //	@param dataPack
 //	@param req
@@ -184,8 +183,8 @@ func (s *EvolvingServer) GetDataPackChanMap(dataPack *netx.DataPack) (c chan net
 
 // broadCast
 //
-//	@Description:
-//	@param msg
+//	@Description:  广播
+//	@param msg 需要广播的消息
 func (s *EvolvingServer) broadCast(msg netx.IMessage) {
 	for _, pack := range svr_mgr.GetServiceMgrInstance().DataPackMap {
 		s.sendMsg(pack, msg)
@@ -194,7 +193,7 @@ func (s *EvolvingServer) broadCast(msg netx.IMessage) {
 
 // sendMsg
 //
-//	@Description:
+//	@Description: 消息发送
 //	@param dataPack
 //	@param message
 func (s *EvolvingServer) sendMsg(dataPack *netx.DataPack, message netx.IMessage) {
