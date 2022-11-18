@@ -17,7 +17,7 @@ BenchmarkDirectly-2   	    4312	    318592 ns/op
 > 从压测数据上来看性能还是不错的　＿＾－－＾＿
 ### 快速开始　
 ####    安装
-　　```go　get　github.com/yuhao-jack/go-toolx```
+　　```go　get　github.com/yuhao-jack/evolving-rpc```
 
 ####    [点我查看直连模式](./test/directly_rpc_test.go)
 
