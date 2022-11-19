@@ -12,11 +12,22 @@ import (
 )
 
 func beforeTestDistributedRpc() {
+	//  开启注册服务
+	serverConf := model.EvolvingServerConf{
+		BindHost:   "0.0.0.0",
+		ServerPort: 6601,
+	}
+	evolvingServer := evolving_server.NewEvolvingServer(&serverConf)
+	go evolvingServer.Start()
+	time.Sleep(time.Second)
+
+	//  注册中心的配置
 	config := model.EvolvingClientConfig{
 		EvolvingServerHost: "0.0.0.0",
 		EvolvingServerPort: 6601,
 		HeartbeatInterval:  5 * time.Minute,
 	}
+	//  要注册的服务的信息
 	serviceInfo := model.ServiceInfo{
 		ServiceName:    "Arith",
 		ServiceHost:    "0.0.0.0",
@@ -24,6 +35,7 @@ func beforeTestDistributedRpc() {
 		ServiceProtoc:  "prc",
 		AdditionalMeta: map[string]any{},
 	}
+	//  这里尝试注册3个
 	for i := 0; i < 3; i++ {
 		serviceInfo.ServicePort = serviceInfo.ServicePort + 1
 		fmt.Println(fmt.Sprintf("%v", serviceInfo))
@@ -35,11 +47,13 @@ func beforeTestDistributedRpc() {
 		}
 		go rpcServer.Run()
 	}
+	//  让子弹飞一会
 	time.Sleep(3 * time.Second)
 }
 
 func TestDistributedRpc(t *testing.T) {
 	beforeTestDistributedRpc()
+	//  注册中心的配置
 	var registerCenterConfigs = []*model.EvolvingClientConfig{
 		{
 			EvolvingServerHost: "0.0.0.0",
