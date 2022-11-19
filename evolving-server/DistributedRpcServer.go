@@ -19,9 +19,14 @@ import (
 
 var unknownProtocErr = errors.New("error: unknown protoc")
 
+// IRpcServer
+// @Description:
 type IRpcServer interface {
 	Register(rcvr any) error
 }
+
+// methodType
+// @Description:
 type methodType struct {
 	sync.Mutex
 	method    reflect.Method
@@ -29,6 +34,8 @@ type methodType struct {
 	ReplyType reflect.Type
 }
 
+// service
+// @Description:
 type service struct {
 	name   string                 // name of service
 	rcvr   reflect.Value          // receiver of methods for the service
@@ -36,15 +43,23 @@ type service struct {
 	method map[string]*methodType // registered methods
 }
 
-type RpcServer struct {
+// DistributedRpcServer
+// @Description:
+type DistributedRpcServer struct {
 	serviceMap           map[string]*service
 	registerCenterConfig *model.EvolvingClientConfig
 	serverConfig         *model.ServiceInfo
 	evolvingServer       *EvolvingServer
 }
 
-func NewRpcServer(registerCenterConfig *model.EvolvingClientConfig, serverConfig *model.ServiceInfo) *RpcServer {
-	rpcServer := RpcServer{
+// NewDistributedRpcServer
+//
+//	@Description:
+//	@param registerCenterConfig
+//	@param serverConfig
+//	@return *RpcServer
+func NewDistributedRpcServer(registerCenterConfig *model.EvolvingClientConfig, serverConfig *model.ServiceInfo) *DistributedRpcServer {
+	rpcServer := DistributedRpcServer{
 		serviceMap:           map[string]*service{},
 		registerCenterConfig: registerCenterConfig,
 		serverConfig:         serverConfig,
@@ -62,7 +77,13 @@ func NewRpcServer(registerCenterConfig *model.EvolvingClientConfig, serverConfig
 	return &rpcServer
 }
 
-func (r *RpcServer) Register(rcvr any) error {
+// Register
+//
+//	@Description:
+//	@receiver r
+//	@param rcvr
+//	@return error
+func (r *DistributedRpcServer) Register(rcvr any) error {
 	s := new(service)
 	s.typ = reflect.TypeOf(rcvr)
 	s.rcvr = reflect.ValueOf(rcvr)
@@ -80,7 +101,11 @@ func (r *RpcServer) Register(rcvr any) error {
 	return nil
 }
 
-func (r *RpcServer) Run() {
+// Run
+//
+//	@Description:
+//	@receiver r
+func (r *DistributedRpcServer) Run() {
 	for n, server := range r.serviceMap {
 		for s := range server.method {
 			r.evolvingServer.SetCommand(fmt.Sprint(n, ".", s), func(dataPack *netx.DataPack, reply netx.IMessage) {
@@ -128,6 +153,10 @@ func (r *RpcServer) Run() {
 	r.evolvingServer.Start()
 }
 
+// buildMethodMap
+//
+//	@Description:
+//	@param s
 func buildMethodMap(s *service) {
 	for m := 0; m < s.typ.NumMethod(); m++ {
 		method := s.typ.Method(m)
@@ -154,6 +183,11 @@ func buildMethodMap(s *service) {
 	}
 }
 
+// isExportedOrBuiltinType
+//
+//	@Description:
+//	@param t
+//	@return bool
 func isExportedOrBuiltinType(t reflect.Type) bool {
 	for t.Kind() == reflect.Pointer {
 		t = t.Elem()

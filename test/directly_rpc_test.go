@@ -44,7 +44,7 @@ func (a *Arith) Divide(req *ArithReq) (reply ArithReply) {
 	return
 }
 
-func init() {
+func beforeTestDirectlyRpc() {
 	config := evolving_server.DirectlyRpcServerConfig{EvolvingServerConf: model.EvolvingServerConf{
 		BindHost:   "0.0.0.0",
 		ServerPort: 3301,
@@ -59,7 +59,8 @@ func init() {
 	time.Sleep(3 * time.Second)
 }
 
-func TestDirectly(t *testing.T) {
+func TestDirectlyRpc(t *testing.T) {
+	beforeTestDirectlyRpc()
 	config := evolving_client.DirectlyRpcClientConfig{EvolvingClientConfig: model.EvolvingClientConfig{
 		EvolvingServerHost: "0.0.0.0",
 		EvolvingServerPort: 3301,
@@ -78,7 +79,8 @@ func TestDirectly(t *testing.T) {
 
 }
 
-func BenchmarkDirectly(b *testing.B) {
+func BenchmarkDirectlyRpc(b *testing.B) {
+	beforeTestDirectlyRpc()
 	config := evolving_client.DirectlyRpcClientConfig{EvolvingClientConfig: model.EvolvingClientConfig{
 		EvolvingServerHost: "0.0.0.0",
 		EvolvingServerPort: 3301,

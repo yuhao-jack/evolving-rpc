@@ -1,8 +1,8 @@
 package main
 
 import (
-	evolvingserver "gitee.com/yuhao-jack/evolving-rpc/evolving-server"
-	"gitee.com/yuhao-jack/evolving-rpc/model"
+	evolvingserver "github.com/yuhao-jack/evolving-rpc/evolving-server"
+	"github.com/yuhao-jack/evolving-rpc/model"
 )
 
 func main() {

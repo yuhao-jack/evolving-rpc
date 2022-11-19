@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/yuhao-jack/evolving-rpc/model"
+	"github.com/yuhao-jack/go-toolx/fun"
 	"github.com/yuhao-jack/go-toolx/netx"
+	"hash/crc32"
 	"log"
 	"sync"
 	"time"
@@ -17,7 +19,7 @@ const (
 	Distributed ModeType = "distributed"
 )
 
-type RpcClient struct {
+type DistributedRpcClient struct {
 	registerCenterConfigs []*model.EvolvingClientConfig
 	serviceInfoMap        map[string][]*model.ServiceInfo
 	serviceClientMap      map[string][]*EvolvingClient
@@ -25,8 +27,8 @@ type RpcClient struct {
 	mode                  ModeType
 }
 
-func NewRpcClient(registerCenterConfigs []*model.EvolvingClientConfig, dependentServices []string) (c *RpcClient) {
-	rpcClient := RpcClient{registerCenterConfigs: registerCenterConfigs, serviceInfoMap: map[string][]*model.ServiceInfo{}}
+func NewDistributedRpcClient(registerCenterConfigs []*model.EvolvingClientConfig, dependentServices []string) (c *DistributedRpcClient) {
+	rpcClient := DistributedRpcClient{registerCenterConfigs: registerCenterConfigs, serviceInfoMap: map[string][]*model.ServiceInfo{}, serviceClientMap: map[string][]*EvolvingClient{}}
 	for _, config := range registerCenterConfigs {
 		evolvingClient := NewEvolvingClient(config)
 		rpcClient.evolvingClient = append(rpcClient.evolvingClient, evolvingClient)
@@ -83,16 +85,19 @@ func NewRpcClient(registerCenterConfigs []*model.EvolvingClientConfig, dependent
 	return &rpcClient
 }
 
-func (c *RpcClient) ExecuteCommand(serviceName, command string, req []byte, isSync bool) (res []byte, err error) {
+func (c *DistributedRpcClient) ExecuteCommand(serviceName, command string, req []byte, isSync bool) (res []byte, err error) {
 	clients, ok := c.serviceClientMap[serviceName]
 	if !ok {
 		return nil, errors.New("service " + serviceName + " not found")
+	}
+	if len(clients) == 0 {
+		return nil, errors.New("service " + serviceName + " has no provider")
 	}
 	group := sync.WaitGroup{}
 	if isSync {
 		group.Add(1)
 	}
-	clients[0].Execute(netx.NewDefaultMessage([]byte(command), req), func(reply netx.IMessage) {
+	clients[c.getClientsIndex(command, len(clients))].Execute(netx.NewDefaultMessage([]byte(command), req), func(reply netx.IMessage) {
 		res = reply.GetBody()
 		if isSync {
 			group.Done()
@@ -103,4 +108,17 @@ func (c *RpcClient) ExecuteCommand(serviceName, command string, req []byte, isSy
 	}
 
 	return res, nil
+}
+
+// getClientsIndex
+//
+//	@Description:
+//	@receiver c
+//	@param in
+//	@param hashBy
+//	@return int
+func (c *DistributedRpcClient) getClientsIndex(in string, hashBy int) int {
+	v := int(crc32.ChecksumIEEE([]byte(in)))
+	t := fun.IfOr(v >= 0, v, -v) % hashBy
+	return t
 }
