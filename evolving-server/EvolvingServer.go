@@ -248,6 +248,8 @@ func Register(message netx.IMessage, dataPack *netx.DataPack, sendMsg func(dataP
 			info.ServiceHost == serviceInfo.ServiceHost &&
 			info.ServicePort == serviceInfo.ServicePort {
 			info.AdditionalMeta = serviceInfo.AdditionalMeta
+			info.AdditionalMeta[contents.Status.String()] = contents.Up
+			delete(info.AdditionalMeta, contents.LostTime.String())
 			info.ServiceProtoc = serviceInfo.ServiceProtoc
 			needInsert = false
 		}
