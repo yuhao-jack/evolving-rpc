@@ -12,6 +12,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 )
 
 var logger = log.Default()
@@ -90,9 +91,19 @@ func (s *EvolvingServer) Start() {
 func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 	dataPack := netx.DataPack{Conn: conn}
 	svr_mgr.GetServiceMgrInstance().AddDataPack(&dataPack)
-
+	var serviceInfo model.ServiceInfo
 	defer func() { // 客户端端开后广播到其他客户端
 		svr_mgr.GetServiceMgrInstance().DelDataPack(&dataPack)
+		if !fun.IsBlank(serviceInfo) {
+			for _, info := range svr_mgr.GetServiceMgrInstance().ServiceInfoList {
+				if info.ServiceName == serviceInfo.ServiceName &&
+					info.ServiceHost == serviceInfo.ServiceHost &&
+					info.ServicePort == serviceInfo.ServicePort {
+					info.AdditionalMeta[contents.Status.String()] = contents.Down
+					info.AdditionalMeta[contents.LostTime.String()] = time.Now()
+				}
+			}
+		}
 		err := conn.Close()
 		if err != nil {
 			logger.Println(err)
@@ -101,7 +112,7 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 			close(s.dataPackChanMap[&dataPack])
 		}
 		delete(s.dataPackChanMap, &dataPack)
-		s.broadCast(netx.NewDefaultMessage([]byte(contents.ConnectClosed), []byte(dataPack.RemoteAddr().String()+" closed")))
+		s.broadCast(netx.NewDefaultMessage([]byte(contents.ConnectClosed), []byte(dataPack.RemoteAddr().String()+" disconnected")))
 	}()
 	for {
 		message, err := dataPack.UnPackMessage()
@@ -109,8 +120,14 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 			logger.Println(err)
 			break
 		}
-
-		f := s.GetCommand(string(message.GetCommand()))
+		command := string(message.GetCommand())
+		if command == contents.Register {
+			err = json.Unmarshal(message.GetBody(), &serviceInfo)
+			if err != nil {
+				logger.Println(err)
+			}
+		}
+		f := s.GetCommand(command)
 		fun.IfOr(f != nil, f, s.GetCommand(contents.Default))(&dataPack, message)
 	}
 }

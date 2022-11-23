@@ -57,13 +57,12 @@ func NewDistributedRpcClient(registerCenterConfigs []*model.EvolvingClientConfig
 		waitGroup.Wait()
 
 		waitGroup.Add(1)
-		rpcClient.evolvingClient[0].DisCover(service, func(reply netx.IMessage) {
+		_ = rpcClient.evolvingClient[0].DisCover(service, func(reply netx.IMessage) {
 			err := json.Unmarshal(reply.GetBody(), &serviceList)
 			if err != nil {
 				log.Default().Println("json.Unmarshal failed,err:", err)
 			}
 			waitGroup.Done()
-
 		})
 		waitGroup.Wait()
 		rpcClient.serviceInfoMap[service] = serviceList
