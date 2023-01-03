@@ -95,14 +95,23 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 	defer func() { // 客户端端开后广播到其他客户端
 		svr_mgr.GetServiceMgrInstance().DelDataPack(&dataPack)
 		if !fun.IsBlank(serviceInfo) {
-			for _, info := range svr_mgr.GetServiceMgrInstance().ServiceInfoList {
+			/*for _, info := range svr_mgr.GetServiceMgrInstance().ServiceInfoList {
 				if info.ServiceName == serviceInfo.ServiceName &&
 					info.ServiceHost == serviceInfo.ServiceHost &&
 					info.ServicePort == serviceInfo.ServicePort {
 					info.AdditionalMeta[contents.Status.String()] = contents.Down
 					info.AdditionalMeta[contents.LostTime.String()] = time.Now()
 				}
-			}
+			}*/
+
+			svr_mgr.GetServiceMgrInstance().ServiceInfoList.ForEach(func(info *model.ServiceInfo) {
+				if info.ServiceName == serviceInfo.ServiceName &&
+					info.ServiceHost == serviceInfo.ServiceHost &&
+					info.ServicePort == serviceInfo.ServicePort {
+					info.AdditionalMeta[contents.Status.String()] = contents.Down
+					info.AdditionalMeta[contents.LostTime.String()] = time.Now()
+				}
+			})
 		}
 		err := conn.Close()
 		if err != nil {
@@ -203,9 +212,9 @@ func (s *EvolvingServer) GetDataPackChanMap(dataPack *netx.DataPack) (c chan net
 //	@Description:  广播
 //	@param msg 需要广播的消息
 func (s *EvolvingServer) broadCast(msg netx.IMessage) {
-	for _, pack := range svr_mgr.GetServiceMgrInstance().DataPackMap {
-		s.sendMsg(pack, msg)
-	}
+	svr_mgr.GetServiceMgrInstance().DataPackMap.Each(func(key string, val *netx.DataPack) {
+		s.sendMsg(val, msg)
+	})
 }
 
 // sendMsg
@@ -260,7 +269,7 @@ func Register(message netx.IMessage, dataPack *netx.DataPack, sendMsg func(dataP
 		return
 	}
 	needInsert := true
-	for _, info := range svr_mgr.GetServiceMgrInstance().ServiceInfoList {
+	svr_mgr.GetServiceMgrInstance().ServiceInfoList.ForEach(func(info *model.ServiceInfo) {
 		if info.ServiceName == serviceInfo.ServiceName &&
 			info.ServiceHost == serviceInfo.ServiceHost &&
 			info.ServicePort == serviceInfo.ServicePort {
@@ -270,7 +279,7 @@ func Register(message netx.IMessage, dataPack *netx.DataPack, sendMsg func(dataP
 			info.ServiceProtoc = serviceInfo.ServiceProtoc
 			needInsert = false
 		}
-	}
+	})
 	if needInsert {
 		svr_mgr.GetServiceMgrInstance().AddServiceInfo(&serviceInfo)
 	}

@@ -3,6 +3,7 @@ package svr_mgr
 import (
 	"github.com/yuhao-jack/evolving-rpc/contents"
 	"github.com/yuhao-jack/evolving-rpc/model"
+	"github.com/yuhao-jack/go-toolx/containerx"
 	"github.com/yuhao-jack/go-toolx/fun"
 	"github.com/yuhao-jack/go-toolx/netx"
 	"sync"
@@ -12,15 +13,16 @@ import (
 // ServiceMgr
 // @Description: 服务管理器，管理注册过来的服务
 type ServiceMgr struct {
-	ServiceInfoList []*model.ServiceInfo
-	DataPackMap     map[string]*netx.DataPack
+	ServiceInfoList *containerx.Set[*model.ServiceInfo]
+	DataPackMap     *containerx.ConcurrentMap[string, *netx.DataPack]
 	lock            sync.RWMutex
 	keepDuration    time.Duration
 }
 
 var once sync.Once
 var serviceMgrInstance = &ServiceMgr{
-	ServiceInfoList: nil,
+	ServiceInfoList: containerx.NewSet[*model.ServiceInfo](),
+	DataPackMap:     containerx.NewConcurrentMap[string, *netx.DataPack](),
 	lock:            sync.RWMutex{},
 }
 
@@ -31,20 +33,24 @@ var serviceMgrInstance = &ServiceMgr{
 func GetServiceMgrInstance() *ServiceMgr {
 	once.Do(func() {
 		go func() {
-			time.AfterFunc(time.Second, func() {
-				for i, info := range serviceMgrInstance.ServiceInfoList {
+			ticker := time.NewTicker(time.Second)
+			for range ticker.C {
+				serviceMgrInstance.ServiceInfoList.ForEach(func(info *model.ServiceInfo) {
 					lostTime, ok := info.AdditionalMeta[contents.LostTime.String()]
 					if ok {
-						serviceMgrInstance.lock.Lock()
+
 						if time.Since(lostTime.(time.Time)) > serviceMgrInstance.GetKeepDuration() {
-							serviceMgrInstance.ServiceInfoList = append(serviceMgrInstance.ServiceInfoList[:i], serviceMgrInstance.ServiceInfoList[i+1:]...)
+							serviceMgrInstance.lock.Lock()
+							serviceMgrInstance.ServiceInfoList.Remove(info)
+							serviceMgrInstance.lock.Unlock()
 						} else {
+							serviceMgrInstance.lock.Lock()
 							info.AdditionalMeta[contents.Status.String()] = contents.Down
+							serviceMgrInstance.lock.Unlock()
 						}
-						serviceMgrInstance.lock.Unlock()
 					}
-				}
-			})
+				})
+			}
 
 		}()
 	})
@@ -60,11 +66,11 @@ func GetServiceMgrInstance() *ServiceMgr {
 func (m *ServiceMgr) FindServiceInfosByServiceName(serviceName string) (serviceList []*model.ServiceInfo) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	for _, info := range m.ServiceInfoList {
+	m.ServiceInfoList.ForEach(func(info *model.ServiceInfo) {
 		if info.ServiceName == serviceName {
 			serviceList = append(serviceList, info)
 		}
-	}
+	})
 	return serviceList
 }
 
@@ -99,7 +105,7 @@ func (m *ServiceMgr) AddServiceInfo(serviceInfo *model.ServiceInfo) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	serviceInfo.AdditionalMeta[contents.Status.String()] = contents.Up
-	m.ServiceInfoList = append(m.ServiceInfoList, serviceInfo)
+	m.ServiceInfoList.Add(serviceInfo)
 }
 
 // AddDataPack
@@ -108,12 +114,7 @@ func (m *ServiceMgr) AddServiceInfo(serviceInfo *model.ServiceInfo) {
 //	@receiver m
 //	@param pack 连接包
 func (m *ServiceMgr) AddDataPack(pack *netx.DataPack) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	if m.DataPackMap == nil {
-		m.DataPackMap = make(map[string]*netx.DataPack)
-	}
-	m.DataPackMap[pack.RemoteAddr().String()] = pack
+	m.DataPackMap.Set(pack.RemoteAddr().String(), pack)
 }
 
 // DelDataPack
@@ -122,7 +123,5 @@ func (m *ServiceMgr) AddDataPack(pack *netx.DataPack) {
 //	@receiver m
 //	@param pack
 func (m *ServiceMgr) DelDataPack(pack *netx.DataPack) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	delete(m.DataPackMap, pack.RemoteAddr().String())
+	m.DataPackMap.Remove(pack.RemoteAddr().String())
 }

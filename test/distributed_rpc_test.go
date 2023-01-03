@@ -13,12 +13,12 @@ import (
 
 func beforeTestDistributedRpc() {
 	//  开启注册服务
-	serverConf := model.EvolvingServerConf{
-		BindHost:   "0.0.0.0",
-		ServerPort: 6601,
-	}
-	evolvingServer := evolving_server.NewEvolvingServer(&serverConf)
-	go evolvingServer.Start()
+	//serverConf := model.EvolvingServerConf{
+	//	BindHost:   "0.0.0.0",
+	//	ServerPort: 6601,
+	//}
+	//evolvingServer := evolving_server.NewEvolvingServer(&serverConf)
+	//go evolvingServer.Start()
 	time.Sleep(time.Second)
 
 	//  注册中心的配置
