@@ -6,18 +6,14 @@ import (
 	"fmt"
 	"github.com/yuhao-jack/evolving-rpc/contents"
 	"github.com/yuhao-jack/evolving-rpc/model"
+	go_log "github.com/yuhao-jack/go-log"
 	"github.com/yuhao-jack/go-toolx/fun"
 	"github.com/yuhao-jack/go-toolx/netx"
-	"log"
 	"sync"
 	"time"
 )
 
-var logger = log.Default()
-
-func init() {
-	logger.SetFlags(log.Llongfile | log.Ldate | log.Lmicroseconds)
-}
+var logger = go_log.GetSingleGoLog()
 
 // EvolvingClient
 // @Description: 客户端连接（非RPC客户端）
@@ -42,7 +38,7 @@ func NewEvolvingClient(conf *model.EvolvingClientConfig) *EvolvingClient {
 	}
 	evolvingClient.createConn()
 	evolvingClient.SetCommand(contents.Default, func(reply netx.IMessage) {
-		logger.Println(string(reply.GetCommand()), string(reply.GetBody()))
+		logger.Info(string(reply.GetCommand()) + ":" + string(reply.GetBody()))
 	})
 	go evolvingClient.processMsg()
 	go evolvingClient.sendMsg()
@@ -94,14 +90,14 @@ func (c *EvolvingClient) GetCommand(command string) (f func(reply netx.IMessage)
 func (c *EvolvingClient) createConn() {
 	conn, err := netx.CreateTcpConn(fmt.Sprintf("%s:%d", c.conf.EvolvingServerHost, c.conf.EvolvingServerPort))
 	if err != nil {
-		logger.Println("start evolving-client failed,err:", err)
+		logger.Error("start evolving-client failed,err:%v", err)
 		return
 	}
 
 	dataPack := netx.DataPack{}
 	dataPack.Conn = conn
 	c.dataPack = &dataPack
-	logger.Println("start evolving-client successful.")
+	logger.Info("start evolving-client successful.")
 }
 
 // sendMsg
@@ -115,13 +111,13 @@ func (c *EvolvingClient) sendMsg() {
 		case <-ticker.C:
 			err := c.dataPack.Pack([]byte(contents.ALive), nil)
 			if err != nil {
-				logger.Println(err)
+				logger.Error(err.Error())
 				continue
 			}
 		case msg := <-c.msgChan:
 			err := c.dataPack.PackMessage(msg)
 			if err != nil {
-				logger.Println(err)
+				logger.Error(err.Error())
 				continue
 			}
 		}
@@ -136,7 +132,7 @@ func (c *EvolvingClient) processMsg() {
 	for {
 		message, err := c.dataPack.UnPackMessage()
 		if err != nil {
-			logger.Println(err)
+			logger.Error(err.Error())
 			break
 		}
 		f := c.GetCommand(string(message.GetCommand()))

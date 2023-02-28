@@ -7,11 +7,9 @@ import (
 	"github.com/yuhao-jack/evolving-rpc/contents"
 	evolvingclient "github.com/yuhao-jack/evolving-rpc/evolving-client"
 	"github.com/yuhao-jack/evolving-rpc/model"
-
 	"github.com/yuhao-jack/go-toolx/fun"
 	"github.com/yuhao-jack/go-toolx/netx"
 	"go/token"
-	"log"
 	"reflect"
 	"strings"
 	"sync"
@@ -66,7 +64,7 @@ func NewDistributedRpcServer(registerCenterConfig *model.EvolvingClientConfig, s
 	}
 	evolvingClient := evolvingclient.NewEvolvingClient(registerCenterConfig)
 	if err := evolvingClient.RegisterService(serverConfig, func(reply netx.IMessage) {
-		log.Default().Println(string(reply.GetBody()))
+		logger.Info(string(reply.GetBody()))
 	}); err != nil {
 		panic("register service to register-center failed ,err:" + err.Error())
 	}

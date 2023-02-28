@@ -7,7 +7,6 @@ import (
 	"github.com/yuhao-jack/go-toolx/fun"
 	"github.com/yuhao-jack/go-toolx/netx"
 	"hash/crc32"
-	"log"
 	"sync"
 	"time"
 )
@@ -60,7 +59,7 @@ func NewDistributedRpcClient(registerCenterConfigs []*model.EvolvingClientConfig
 		_ = rpcClient.evolvingClient[0].DisCover(service, func(reply netx.IMessage) {
 			err := json.Unmarshal(reply.GetBody(), &serviceList)
 			if err != nil {
-				log.Default().Println("json.Unmarshal failed,err:", err)
+				logger.Error("json.Unmarshal failed,err:%v", err)
 			}
 			waitGroup.Done()
 		})

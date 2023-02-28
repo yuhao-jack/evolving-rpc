@@ -7,19 +7,15 @@ import (
 	"github.com/yuhao-jack/evolving-rpc/errorx"
 	"github.com/yuhao-jack/evolving-rpc/evolving-server/svr_mgr"
 	"github.com/yuhao-jack/evolving-rpc/model"
+	go_log "github.com/yuhao-jack/go-log"
 	"github.com/yuhao-jack/go-toolx/fun"
 	"github.com/yuhao-jack/go-toolx/netx"
-	"log"
 	"net"
 	"sync"
 	"time"
 )
 
-var logger = log.Default()
-
-func init() {
-	logger.SetFlags(log.Llongfile | log.Ldate | log.Lmicroseconds)
-}
+var logger = go_log.GetSingleGoLog()
 
 // EvolvingServer
 // @Description: 服务端连接（非RPC服务端）
@@ -70,14 +66,14 @@ func NewEvolvingServer(conf *model.EvolvingServerConf) *EvolvingServer {
 func (s *EvolvingServer) Start() {
 	tcpListener, err := netx.CreateTCPListener(fmt.Sprintf("%s:%d", s.conf.BindHost, s.conf.ServerPort))
 	if err != nil {
-		logger.Println("start evolving-server failed,err:", err)
+		logger.Error("start evolving-server failed,err:%v", err)
 		return
 	}
-	logger.Println("start evolving-server successful.")
+	logger.Info("start evolving-server successful.")
 	for {
 		tcpConn, err := tcpListener.AcceptTCP()
 		if err != nil {
-			logger.Println("accept tcp conn failed,err:", err)
+			logger.Error("accept tcp conn failed,err:%v", err)
 			continue
 		}
 		go s.connHandler(tcpConn)
@@ -115,7 +111,7 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 		}
 		err := conn.Close()
 		if err != nil {
-			logger.Println(err)
+			logger.Error(err.Error())
 		}
 		if s.dataPackChanMap[&dataPack] != nil {
 			close(s.dataPackChanMap[&dataPack])
@@ -126,14 +122,14 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 	for {
 		message, err := dataPack.UnPackMessage()
 		if err != nil {
-			logger.Println(err)
+			logger.Error(err.Error())
 			break
 		}
 		command := string(message.GetCommand())
 		if command == contents.Register {
 			err = json.Unmarshal(message.GetBody(), &serviceInfo)
 			if err != nil {
-				logger.Println(err)
+				logger.Error(err.Error())
 			}
 		}
 		f := s.GetCommand(command)
@@ -233,10 +229,10 @@ func (s *EvolvingServer) sendMsg(dataPack *netx.DataPack, message netx.IMessage)
 					if ok {
 						err := dataPack.PackMessage(msg)
 						if err != nil {
-							logger.Println(err)
+							logger.Error(err.Error())
 						}
 					} else {
-						logger.Println(dataPack.RemoteAddr().String(), " closed")
+						logger.Warn(dataPack.RemoteAddr().String() + ": closed")
 						break
 					}
 				}
@@ -264,8 +260,8 @@ func Register(message netx.IMessage, dataPack *netx.DataPack, sendMsg func(dataP
 	var serviceInfo model.ServiceInfo
 	err := json.Unmarshal(message.GetBody(), &serviceInfo)
 	if err != nil {
-		logger.Println(err)
-		logger.Println(string(message.GetBody()))
+		logger.Error(err.Error())
+		logger.Warn(string(message.GetBody()))
 		return
 	}
 	needInsert := true
@@ -295,7 +291,7 @@ func DisCover(message netx.IMessage, dataPack *netx.DataPack, sendMsg func(dataP
 	list := svr_mgr.GetServiceMgrInstance().FindServiceInfosByServiceName(string(message.GetBody()))
 	bytes, err := json.Marshal(list)
 	if err != nil {
-		logger.Println(err)
+		logger.Error(err.Error())
 		return
 	}
 	message.SetBody(bytes)
