@@ -129,11 +129,13 @@ func (c *EvolvingClient) sendMsg() {
 				logger.Error(err.Error())
 				continue
 			}
-		case msg := <-c.msgChan:
-			err := c.dataPack.PackMessage(msg)
-			if err != nil {
-				logger.Error(err.Error())
-				continue
+		case msg, ok := <-c.msgChan:
+			if ok {
+				err := c.dataPack.PackMessage(msg)
+				if err != nil {
+					logger.Error(err.Error())
+					continue
+				}
 			}
 		}
 	}
