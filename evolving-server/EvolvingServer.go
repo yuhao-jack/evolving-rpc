@@ -91,15 +91,6 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 	defer func() { // 客户端端开后广播到其他客户端
 		svr_mgr.GetServiceMgrInstance().DelDataPack(&dataPack)
 		if !fun.IsBlank(serviceInfo) {
-			/*for _, info := range svr_mgr.GetServiceMgrInstance().ServiceInfoList {
-				if info.ServiceName == serviceInfo.ServiceName &&
-					info.ServiceHost == serviceInfo.ServiceHost &&
-					info.ServicePort == serviceInfo.ServicePort {
-					info.AdditionalMeta[contents.Status.String()] = contents.Down
-					info.AdditionalMeta[contents.LostTime.String()] = time.Now()
-				}
-			}*/
-
 			svr_mgr.GetServiceMgrInstance().ServiceInfoList.ForEach(func(info *model.ServiceInfo) {
 				if info.ServiceName == serviceInfo.ServiceName &&
 					info.ServiceHost == serviceInfo.ServiceHost &&

@@ -108,6 +108,20 @@ func (c *DistributedRpcClient) ExecuteCommand(serviceName, command string, req [
 	return res, nil
 }
 
+// Close
+//
+//	@Description: 关闭客户端
+//	@receiver c
+//	@Author yuhao
+//	@Data 2023-03-01 21:03:07
+func (c *DistributedRpcClient) Close() {
+	for _, clients := range c.serviceClientMap {
+		for _, client := range clients {
+			client.Close()
+		}
+	}
+}
+
 // getClientsIndex
 //
 //	@Description:

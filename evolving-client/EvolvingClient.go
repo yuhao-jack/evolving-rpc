@@ -45,6 +45,21 @@ func NewEvolvingClient(conf *model.EvolvingClientConfig) *EvolvingClient {
 	return &evolvingClient
 }
 
+// Close
+//
+//	@Description: 关闭客户端
+//	@receiver c
+//	@Author yuhao
+//	@Data 2023-03-01 21:04:46
+func (c *EvolvingClient) Close() {
+	close(c.msgChan)
+	err := c.dataPack.Close()
+	if err != nil {
+		go_log.GetSingleGoLog().Warn(c.dataPack.LocalAddr().String()+" closed failed,err:%s", err.Error())
+	}
+	go_log.GetSingleGoLog().Warn(c.dataPack.LocalAddr().String() + " closed successful.")
+}
+
 // Execute
 //
 //	@Description: 连接执行的命令
