@@ -117,7 +117,9 @@ func (r *DistributedRpcServer) Run() {
 				var command = string(reply.GetProtoc())
 				switch command {
 				case contents.Json:
-					err = json.Unmarshal(reply.GetBody(), reqv.Interface())
+					if reply.GetBody() != nil {
+						err = json.Unmarshal(reply.GetBody(), reqv.Interface())
+					}
 				default:
 					err = unknownProtocErr
 				}
