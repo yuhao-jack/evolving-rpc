@@ -1,10 +1,8 @@
-github.com/yuhao-jack/go-log v0.0.0-20230227073232-48c0fd095885 h1:NDEP/TrTCtfAYFoOlq9ZYYh9v+wdN3t4JXk5+4ES6hs=
-github.com/yuhao-jack/go-log v0.0.0-20230227073232-48c0fd095885/go.mod h1:s567eZ68/oRWZS85xMq/qmL2sHHym0/Qga6oW+MCUFw=
-github.com/yuhao-jack/go-log v0.0.0-20230228040034-f7d22d42e3cc h1:P6UTX+lUCKv92hQEpq+Nv9P0JE6gZeir81S5qzHmtaw=
-github.com/yuhao-jack/go-log v0.0.0-20230228040034-f7d22d42e3cc/go.mod h1:s567eZ68/oRWZS85xMq/qmL2sHHym0/Qga6oW+MCUFw=
-github.com/yuhao-jack/go-log v0.0.0-20230228044707-fbeb64919627 h1:mH/j5ccklf/HGvHKYf3Ww1ldKDV7C5xpPCYBF5G/ATI=
-github.com/yuhao-jack/go-log v0.0.0-20230228044707-fbeb64919627/go.mod h1:s567eZ68/oRWZS85xMq/qmL2sHHym0/Qga6oW+MCUFw=
-github.com/yuhao-jack/go-toolx v0.0.0-20221223074924-19a3ae43a8da h1:nxX9kThDr/C1KHTf9/11ZmFSO7s0VSD/ENQDoy981e0=
-github.com/yuhao-jack/go-toolx v0.0.0-20221223074924-19a3ae43a8da/go.mod h1:Msh/pTXpSKLRviDGiG85vLYGifVvuce7fgH6Ky8kb98=
+github.com/yuhao-jack/go-log v0.0.0-20230302033753-f2b734805542 h1:xC5ZRhPugVJ2NDaonisjscQzQ2I/YWC/ZixiXugDC4s=
+github.com/yuhao-jack/go-log v0.0.0-20230302033753-f2b734805542/go.mod h1:s567eZ68/oRWZS85xMq/qmL2sHHym0/Qga6oW+MCUFw=
+github.com/yuhao-jack/go-log v0.0.0-20230302064620-7d4788ccc4dd h1:8NjocYZpdY0sECjqEcEE9LtU3UR98zssiI/YJJZygVg=
+github.com/yuhao-jack/go-log v0.0.0-20230302064620-7d4788ccc4dd/go.mod h1:s567eZ68/oRWZS85xMq/qmL2sHHym0/Qga6oW+MCUFw=
+github.com/yuhao-jack/go-log v0.0.0-20230302074839-a12ab059ec29 h1:2llxgpmQa6/rw6qqIwPE5iru/miBelrq+6hdTsRrucY=
+github.com/yuhao-jack/go-log v0.0.0-20230302074839-a12ab059ec29/go.mod h1:s567eZ68/oRWZS85xMq/qmL2sHHym0/Qga6oW+MCUFw=
 github.com/yuhao-jack/go-toolx v0.0.0-20230301100358-980e6dc96056 h1:U5QkkEEnCQfMjo6F//JwkE89TBW7Oh6qSkgR3RhrqTo=
 github.com/yuhao-jack/go-toolx v0.0.0-20230301100358-980e6dc96056/go.mod h1:Msh/pTXpSKLRviDGiG85vLYGifVvuce7fgH6Ky8kb98=

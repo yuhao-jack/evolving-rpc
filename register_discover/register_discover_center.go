@@ -12,7 +12,10 @@ import (
 	"os"
 )
 
+var logger = go_log.DefaultGoLog()
+
 func main() {
+	defer logger.Destroy()
 	serverConf := model.EvolvingServerConf{}
 	var (
 		host         string
@@ -20,17 +23,18 @@ func main() {
 	)
 	ip, err := fun.GetLocalIp()
 	if err != nil {
-		go_log.GetSingleGoLog().Error("GetLocalIp err:%v", err)
+		logger.Error("GetLocalIp err:%v", err)
 		os.Exit(1)
 	}
+	ip = ""
 	flag.StringVar(&serverConf.BindHost, "rdh", ip, "注册发现服务的host")
 	flag.IntVar(&rdport, "rdp", 6601, "注册发现服务的端口")
 	serverConf.ServerPort = int32(rdport)
 	flag.StringVar(&host, "h", ip, "工具服务host")
 	flag.IntVar(&port, "p", 8080, "工具服务端口")
 	flag.Parse()
-	go_log.GetSingleGoLog().Info("register and discover center addr:%s:%d", serverConf.BindHost, serverConf.ServerPort)
-	go_log.GetSingleGoLog().Info("tools service addr:%s:%d", host, port)
+	logger.Info("register and discover center addr:%s:%d", serverConf.BindHost, serverConf.ServerPort)
+	logger.Info("tools service addr:%s:%d", host, port)
 
 	evolvingServer := evolvingserver.NewEvolvingServer(&serverConf)
 	go evolvingServer.Start()

@@ -3,17 +3,15 @@ package test
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/yuhao-jack/evolving-rpc/contents"
 	evolving_client "github.com/yuhao-jack/evolving-rpc/evolving-client"
 	evolving_server "github.com/yuhao-jack/evolving-rpc/evolving-server"
 	"github.com/yuhao-jack/evolving-rpc/model"
-	go_log "github.com/yuhao-jack/go-log"
 	"log"
 
 	"testing"
 	"time"
 )
-
-var logger = go_log.GetSingleGoLog()
 
 func beforeTestDistributedRpc() {
 	//  开启注册服务
@@ -42,7 +40,7 @@ func beforeTestDistributedRpc() {
 	//  这里尝试注册3个
 	for i := 0; i < 3; i++ {
 		serviceInfo.ServicePort = serviceInfo.ServicePort + 1
-		logger.Info(fmt.Sprintf("%v", serviceInfo))
+		contents.RpcLogger.Info(fmt.Sprintf("%v", serviceInfo))
 		rpcServer := evolving_server.NewDistributedRpcServer(&config, &serviceInfo)
 		err := rpcServer.Register(new(Arith))
 		if err != nil {
@@ -56,7 +54,7 @@ func beforeTestDistributedRpc() {
 }
 
 func TestDistributedRpc(t *testing.T) {
-	defer logger.Destroy()
+	defer contents.RpcLogger.Destroy()
 	beforeTestDistributedRpc()
 	//  注册中心的配置
 	var registerCenterConfigs = []*model.EvolvingClientConfig{
@@ -72,11 +70,11 @@ func TestDistributedRpc(t *testing.T) {
 		B: 2,
 	})
 	if err != nil {
-		logger.Error(err.Error())
+		contents.RpcLogger.Error(err.Error())
 		return
 	}
 	res, err := rpcClient.ExecuteCommand("Arith", "Arith.Multiply", bytes, true)
-	logger.Warn("%s,%v", string(res), err)
+	contents.RpcLogger.Warn("%s,%v", string(res), err)
 	res, err = rpcClient.ExecuteCommand("Arith", "Arith.Divide", bytes, true)
-	logger.Warn("%s,%v", string(res), err)
+	contents.RpcLogger.Warn("%s,%v", string(res), err)
 }

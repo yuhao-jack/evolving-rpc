@@ -6,23 +6,22 @@ import (
 	"fmt"
 	"github.com/yuhao-jack/evolving-rpc/contents"
 	"github.com/yuhao-jack/evolving-rpc/model"
-	go_log "github.com/yuhao-jack/go-log"
 	"github.com/yuhao-jack/go-toolx/fun"
 	"github.com/yuhao-jack/go-toolx/netx"
 	"sync"
 	"time"
 )
 
-var logger = go_log.GetSingleGoLog()
-
 // EvolvingClient
 // @Description: 客户端连接（非RPC客户端）
 type EvolvingClient struct {
-	msgChan  chan netx.IMessage
-	dataPack *netx.DataPack
-	conf     *model.EvolvingClientConfig
-	commands map[string]func(message netx.IMessage)
-	lock     *sync.RWMutex
+	msgChan   chan netx.IMessage
+	dataPack  *netx.DataPack
+	conf      *model.EvolvingClientConfig
+	commands  map[string]func(message netx.IMessage)
+	lock      *sync.RWMutex
+	closeFlag bool
+	closeChan chan bool
 }
 
 // NewEvolvingClient
@@ -32,14 +31,19 @@ type EvolvingClient struct {
 //	@return *EvolvingClient 客户端连接
 func NewEvolvingClient(conf *model.EvolvingClientConfig) *EvolvingClient {
 	evolvingClient := EvolvingClient{msgChan: make(chan netx.IMessage, 1024),
-		conf:     conf,
-		commands: make(map[string]func(message netx.IMessage)),
-		lock:     &sync.RWMutex{},
+		conf:      conf,
+		commands:  make(map[string]func(message netx.IMessage)),
+		lock:      &sync.RWMutex{},
+		closeChan: make(chan bool, 1),
 	}
-	evolvingClient.createConn()
+	err := evolvingClient.createConn()
+	if err != nil {
+		return nil
+	}
 	evolvingClient.SetCommand(contents.Default, func(reply netx.IMessage) {
-		logger.Info(string(reply.GetCommand()) + ":" + string(reply.GetBody()))
+		contents.RpcLogger.Info(string(reply.GetCommand()) + ":" + string(reply.GetBody()))
 	})
+
 	go evolvingClient.processMsg()
 	go evolvingClient.sendMsg()
 	return &evolvingClient
@@ -52,13 +56,14 @@ func NewEvolvingClient(conf *model.EvolvingClientConfig) *EvolvingClient {
 //	@Author yuhao
 //	@Data 2023-03-01 21:04:46
 func (c *EvolvingClient) Close() {
+	close(c.msgChan)
+	c.closeFlag = true
+	c.closeChan <- c.closeFlag
 	err := c.dataPack.Close()
 	if err != nil {
-		go_log.GetSingleGoLog().Warn(c.dataPack.LocalAddr().String()+" closed failed,err:%s", err.Error())
+		contents.RpcLogger.Warn(c.dataPack.LocalAddr().String()+" closed failed,err:%s", err.Error())
 	}
-	go_log.GetSingleGoLog().Warn(c.dataPack.LocalAddr().String() + " closed successful.")
-	close(c.msgChan)
-
+	contents.RpcLogger.Warn(c.dataPack.LocalAddr().String() + " closed successful.")
 }
 
 // Execute
@@ -103,17 +108,18 @@ func (c *EvolvingClient) GetCommand(command string) (f func(reply netx.IMessage)
 //
 //	@Description: 创建连接
 //	@receiver c
-func (c *EvolvingClient) createConn() {
+func (c *EvolvingClient) createConn() error {
 	conn, err := netx.CreateTcpConn(fmt.Sprintf("%s:%d", c.conf.EvolvingServerHost, c.conf.EvolvingServerPort))
 	if err != nil {
-		logger.Error("start evolving-client failed,err:%v", err)
-		return
+		contents.RpcLogger.Error("start evolving-client failed,err:%v", err)
+		return err
 	}
 
 	dataPack := netx.DataPack{}
 	dataPack.Conn = conn
 	c.dataPack = &dataPack
-	logger.Info("start evolving-client successful.")
+	contents.RpcLogger.Info("start evolving-client successful.")
+	return nil
 }
 
 // sendMsg
@@ -125,21 +131,33 @@ func (c *EvolvingClient) sendMsg() {
 	for {
 		select {
 		case <-ticker.C:
+			if c.closeFlag || c.dataPack == nil {
+				break
+			}
 			err := c.dataPack.Pack([]byte(contents.ALive), nil)
 			if err != nil {
-				logger.Error(err.Error())
+				contents.RpcLogger.Error(err.Error())
 				continue
 			}
 		case msg, ok := <-c.msgChan:
 			if ok {
+				if c.closeFlag || c.dataPack == nil {
+					break
+				}
 				err := c.dataPack.PackMessage(msg)
 				if err != nil {
-					logger.Error(err.Error())
+					contents.RpcLogger.Error(err.Error())
 					continue
 				}
 			}
+		case closeFlag, ok := <-c.closeChan:
+			if ok && closeFlag {
+				close(c.closeChan)
+				return
+			}
 		}
 	}
+
 }
 
 // processMsg
@@ -147,15 +165,16 @@ func (c *EvolvingClient) sendMsg() {
 //	@Description: 处理接受的消息，这里是真正的从网络上拿到数据包并执行对应的函数
 //	@receiver c
 func (c *EvolvingClient) processMsg() {
-	for {
+	for !c.closeFlag && c.dataPack != nil {
 		message, err := c.dataPack.UnPackMessage()
 		if err != nil {
-			logger.Error(err.Error())
+			contents.RpcLogger.Error(err.Error())
 			break
 		}
 		f := c.GetCommand(string(message.GetCommand()))
 		fun.IfOr(f != nil, f, c.GetCommand(contents.Default))(message)
 	}
+	contents.RpcLogger.Warn("socket closed...")
 }
 
 // RegisterService

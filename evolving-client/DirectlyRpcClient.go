@@ -25,6 +25,9 @@ type DirectlyRpcClient struct {
 //	@return *DirectlyRpcClient 直连模式下的Rpc客户端
 func NewDirectlyRpcClient(config *DirectlyRpcClientConfig) *DirectlyRpcClient {
 	client := NewEvolvingClient(&config.EvolvingClientConfig)
+	if client == nil {
+		return nil
+	}
 	return &DirectlyRpcClient{client}
 }
 

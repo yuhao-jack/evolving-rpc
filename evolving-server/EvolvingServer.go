@@ -7,15 +7,12 @@ import (
 	"github.com/yuhao-jack/evolving-rpc/errorx"
 	"github.com/yuhao-jack/evolving-rpc/evolving-server/svr_mgr"
 	"github.com/yuhao-jack/evolving-rpc/model"
-	go_log "github.com/yuhao-jack/go-log"
 	"github.com/yuhao-jack/go-toolx/fun"
 	"github.com/yuhao-jack/go-toolx/netx"
 	"net"
 	"sync"
 	"time"
 )
-
-var logger = go_log.GetSingleGoLog()
 
 // EvolvingServer
 // @Description: 服务端连接（非RPC服务端）
@@ -25,6 +22,7 @@ type EvolvingServer struct {
 	commands        map[string]func(dataPack *netx.DataPack, reply netx.IMessage)
 	dataPackLock    *sync.RWMutex
 	commandLock     *sync.RWMutex
+	closeFlag       bool
 }
 
 // NewEvolvingServer
@@ -66,18 +64,25 @@ func NewEvolvingServer(conf *model.EvolvingServerConf) *EvolvingServer {
 func (s *EvolvingServer) Start() {
 	tcpListener, err := netx.CreateTCPListener(fmt.Sprintf("%s:%d", s.conf.BindHost, s.conf.ServerPort))
 	if err != nil {
-		logger.Error("start evolving-server failed,err:%v", err)
+		contents.RpcLogger.Error("start evolving-server failed,err:%v", err)
 		return
 	}
-	logger.Info("start evolving-server successful.")
+	contents.RpcLogger.Info("start evolving-server successful.")
 	for {
 		tcpConn, err := tcpListener.AcceptTCP()
 		if err != nil {
-			logger.Error("accept tcp conn failed,err:%v", err)
+			contents.RpcLogger.Error("accept tcp conn failed,err:%v", err)
 			continue
 		}
 		go s.connHandler(tcpConn)
 	}
+}
+
+func (s *EvolvingServer) Close() {
+	for dataPack, _ := range s.dataPackChanMap {
+		dataPack.Close()
+	}
+	s.closeFlag = true
 }
 
 // connHandler
@@ -102,7 +107,7 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 		}
 		err := conn.Close()
 		if err != nil {
-			logger.Error(err.Error())
+			contents.RpcLogger.Error(err.Error())
 		}
 		if s.dataPackChanMap[&dataPack] != nil {
 			close(s.dataPackChanMap[&dataPack])
@@ -113,14 +118,14 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 	for {
 		message, err := dataPack.UnPackMessage()
 		if err != nil {
-			logger.Error(err.Error())
+			contents.RpcLogger.Error(err.Error())
 			break
 		}
 		command := string(message.GetCommand())
 		if command == contents.Register {
 			err = json.Unmarshal(message.GetBody(), &serviceInfo)
 			if err != nil {
-				logger.Error(err.Error())
+				contents.RpcLogger.Error(err.Error())
 			}
 		}
 		f := s.GetCommand(command)
@@ -214,20 +219,21 @@ func (s *EvolvingServer) sendMsg(dataPack *netx.DataPack, message netx.IMessage)
 	if dataPackChanMap == nil {
 		s.SetDataPackChanMap(dataPack, make(chan netx.IMessage, 1024))
 		go func() {
-			for {
+			for !s.closeFlag {
 				select {
 				case msg, ok := <-s.GetDataPackChanMap(dataPack):
 					if ok {
 						err := dataPack.PackMessage(msg)
 						if err != nil {
-							logger.Error(err.Error())
+							contents.RpcLogger.Error(err.Error())
 						}
 					} else {
-						logger.Warn(dataPack.RemoteAddr().String() + ": closed")
+						contents.RpcLogger.Warn(dataPack.RemoteAddr().String() + ": closed")
 						break
 					}
 				}
 			}
+			contents.RpcLogger.Warn("Server closed...")
 		}()
 	}
 	s.GetDataPackChanMap(dataPack) <- message
@@ -251,8 +257,8 @@ func Register(message netx.IMessage, dataPack *netx.DataPack, sendMsg func(dataP
 	var serviceInfo model.ServiceInfo
 	err := json.Unmarshal(message.GetBody(), &serviceInfo)
 	if err != nil {
-		logger.Error(err.Error())
-		logger.Warn(string(message.GetBody()))
+		contents.RpcLogger.Error(err.Error())
+		contents.RpcLogger.Warn(string(message.GetBody()))
 		return
 	}
 	needInsert := true
@@ -282,7 +288,7 @@ func DisCover(message netx.IMessage, dataPack *netx.DataPack, sendMsg func(dataP
 	list := svr_mgr.GetServiceMgrInstance().FindServiceInfosByServiceName(string(message.GetBody()))
 	bytes, err := json.Marshal(list)
 	if err != nil {
-		logger.Error(err.Error())
+		contents.RpcLogger.Error(err.Error())
 		return
 	}
 	message.SetBody(bytes)

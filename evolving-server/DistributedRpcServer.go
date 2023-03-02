@@ -63,8 +63,11 @@ func NewDistributedRpcServer(registerCenterConfig *model.EvolvingClientConfig, s
 		serverConfig:         serverConfig,
 	}
 	evolvingClient := evolvingclient.NewEvolvingClient(registerCenterConfig)
+	if evolvingClient == nil {
+		return nil
+	}
 	if err := evolvingClient.RegisterService(serverConfig, func(reply netx.IMessage) {
-		logger.Info(string(reply.GetBody()))
+		contents.RpcLogger.Info(string(reply.GetBody()))
 	}); err != nil {
 		panic("register service to register-center failed ,err:" + err.Error())
 	}
@@ -97,6 +100,16 @@ func (r *DistributedRpcServer) Register(rcvr any) error {
 	}
 	r.serviceMap[s.name] = s
 	return nil
+}
+
+// Close
+//
+//	@Description: 关闭服务
+//	@receiver r
+//	@Author yuhao
+//	@Data 2023-03-02 10:36:18
+func (r *DistributedRpcServer) Close() {
+	r.evolvingServer.Close()
 }
 
 // Run

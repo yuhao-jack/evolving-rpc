@@ -3,6 +3,7 @@ package evolving_client
 import (
 	"encoding/json"
 	"errors"
+	"github.com/yuhao-jack/evolving-rpc/contents"
 	"github.com/yuhao-jack/evolving-rpc/model"
 	"github.com/yuhao-jack/go-toolx/fun"
 	"github.com/yuhao-jack/go-toolx/netx"
@@ -30,7 +31,9 @@ func NewDistributedRpcClient(registerCenterConfigs []*model.EvolvingClientConfig
 	rpcClient := DistributedRpcClient{registerCenterConfigs: registerCenterConfigs, serviceInfoMap: map[string][]*model.ServiceInfo{}, serviceClientMap: map[string][]*EvolvingClient{}}
 	for _, config := range registerCenterConfigs {
 		evolvingClient := NewEvolvingClient(config)
-		rpcClient.evolvingClient = append(rpcClient.evolvingClient, evolvingClient)
+		if evolvingClient != nil {
+			rpcClient.evolvingClient = append(rpcClient.evolvingClient, evolvingClient)
+		}
 	}
 	group := sync.WaitGroup{}
 	for _, service := range dependentServices {
@@ -54,12 +57,15 @@ func NewDistributedRpcClient(registerCenterConfigs []*model.EvolvingClientConfig
 			}
 		}
 		waitGroup.Wait()
-
+		if len(rpcClient.evolvingClient) == 0 {
+			contents.RpcLogger.Error("service %s has no available nodes...", service)
+			return nil
+		}
 		waitGroup.Add(1)
 		_ = rpcClient.evolvingClient[0].DisCover(service, func(reply netx.IMessage) {
 			err := json.Unmarshal(reply.GetBody(), &serviceList)
 			if err != nil {
-				logger.Error("json.Unmarshal failed,err:%v", err)
+				contents.RpcLogger.Error("json.Unmarshal failed,err:%v", err)
 			}
 			waitGroup.Done()
 		})
@@ -69,11 +75,14 @@ func NewDistributedRpcClient(registerCenterConfigs []*model.EvolvingClientConfig
 			rpcClient.serviceClientMap = map[string][]*EvolvingClient{}
 		}
 		for _, info := range serviceList {
-			rpcClient.serviceClientMap[service] = append(rpcClient.serviceClientMap[service], NewEvolvingClient(&model.EvolvingClientConfig{
+			client := NewEvolvingClient(&model.EvolvingClientConfig{
 				EvolvingServerHost: info.ServiceHost,
 				EvolvingServerPort: info.ServicePort,
 				HeartbeatInterval:  60 * time.Second,
-			}))
+			})
+			if client != nil {
+				rpcClient.serviceClientMap[service] = append(rpcClient.serviceClientMap[service], client)
+			}
 
 		}
 		group.Done()

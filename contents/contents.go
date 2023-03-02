@@ -1,5 +1,7 @@
 package contents
 
+import go_log "github.com/yuhao-jack/go-log"
+
 const (
 	Register      = "REGISTER"
 	DisCover      = "DISCOVER"
@@ -22,6 +24,8 @@ const (
 	Https ServiceProtoc = "https"
 	Grpc  ServiceProtoc = "grpc"
 )
+
+var RpcLogger = go_log.DefaultGoLog()
 
 type ServiceStatus string
 
