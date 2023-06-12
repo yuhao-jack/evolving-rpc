@@ -8,6 +8,7 @@ import (
 	"github.com/yuhao-jack/evolving-rpc/model"
 	"log"
 	"math/rand"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -77,7 +78,7 @@ func (a *Arith) Echo(req *EchoReq) (reply *EchoReply) {
 func beforeTestDirectlyRpc() {
 	config := evolving_server.DirectlyRpcServerConfig{EvolvingServerConf: model.EvolvingServerConf{
 		BindHost:   "0.0.0.0",
-		ServerPort: 3301,
+		ServerPort: 3302,
 	}}
 	server := evolving_server.NewDirectlyRpcServer(&config)
 	err := server.Register(new(Arith))
@@ -93,7 +94,7 @@ func TestDirectlyRpc(t *testing.T) {
 	beforeTestDirectlyRpc()
 	config := evolving_client.DirectlyRpcClientConfig{EvolvingClientConfig: model.EvolvingClientConfig{
 		EvolvingServerHost: "0.0.0.0",
-		EvolvingServerPort: 3301,
+		EvolvingServerPort: 3302,
 		HeartbeatInterval:  5 * time.Minute,
 	}}
 	client := evolving_client.NewDirectlyRpcClient(&config)
@@ -102,11 +103,19 @@ func TestDirectlyRpc(t *testing.T) {
 		B: 63,
 	})
 
-	res, err := client.ExecuteCommand("Arith.Divide", bytes, true)
-	log.Default().Println(string(res), err)
-	res, err = client.ExecuteCommand("Arith.Multiply", bytes, true)
-	log.Default().Println(string(res), err)
-
+	wg := sync.WaitGroup{}
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			res, err := client.ExecuteCommand("Arith.Divide", bytes, true)
+			log.Default().Println(string(res), err)
+			res, err = client.ExecuteCommand("Arith.Multiply", bytes, true)
+			log.Default().Println(string(res), err)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	client.Close()
 }
 
 func TestSendMsg(t *testing.T) {

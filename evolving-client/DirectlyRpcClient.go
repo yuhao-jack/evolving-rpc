@@ -15,7 +15,8 @@ type DirectlyRpcClientConfig struct {
 // DirectlyRpcClient
 // @Description: 直连模式下的Rpc客户端
 type DirectlyRpcClient struct {
-	client *EvolvingClient
+	client     *EvolvingClient
+	signalLock *sync.Mutex
 }
 
 // NewDirectlyRpcClient
@@ -28,7 +29,7 @@ func NewDirectlyRpcClient(config *DirectlyRpcClientConfig) *DirectlyRpcClient {
 	if client == nil {
 		return nil
 	}
-	return &DirectlyRpcClient{client}
+	return &DirectlyRpcClient{client: client, signalLock: &sync.Mutex{}}
 }
 
 // ExecuteCommand
@@ -41,19 +42,22 @@ func NewDirectlyRpcClient(config *DirectlyRpcClientConfig) *DirectlyRpcClient {
 //	@return res 命令结果
 //	@return err 失败时的错误信息
 func (d *DirectlyRpcClient) ExecuteCommand(command string, req []byte, isAsync bool) (res []byte, err error) {
-	group := sync.WaitGroup{}
+	var signalChan chan struct{}
 	if isAsync {
-		group.Add(1)
+		d.signalLock.Lock()
+		signalChan = make(chan struct{})
+		defer close(signalChan)
 	}
 	d.client.Execute(netx.NewDefaultMessage([]byte(command), req), func(reply netx.IMessage) {
 		res = reply.GetBody()
 		if isAsync {
-			group.Done()
+			d.signalLock.Unlock()
+			signalChan <- struct{}{}
 		}
 
 	})
 	if isAsync {
-		group.Wait()
+		<-signalChan
 	}
 	return res, nil
 }
