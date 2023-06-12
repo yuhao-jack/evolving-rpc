@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/yuhao-jack/evolving-rpc/contents"
 	"github.com/yuhao-jack/evolving-rpc/model"
+	"github.com/yuhao-jack/go-toolx/containerx"
 	"github.com/yuhao-jack/go-toolx/fun"
 	"github.com/yuhao-jack/go-toolx/netx"
 	"reflect"
@@ -21,8 +22,10 @@ type DirectlyRpcServerConfig struct {
 // DirectlyRpcServer
 // @Description: 直连模式下的RPC服务端
 type DirectlyRpcServer struct {
-	serviceMap     map[string]*service
-	evolvingServer *EvolvingServer
+	serviceMap                map[string]*service
+	evolvingServer            *EvolvingServer
+	protocUnmarshalHandlerMap *containerx.ConcurrentMap[string, func(in []byte, recv any) error]
+	protocMarshalHandlerMap   *containerx.ConcurrentMap[string, func(recv any) ([]byte, error)]
 }
 
 // NewDirectlyRpcServer
@@ -31,7 +34,16 @@ type DirectlyRpcServer struct {
 //	@param config 直连模式下的RPC的服务端的配置
 //	@return *DirectlyRpcServer 直连模式下的RPC服务端
 func NewDirectlyRpcServer(config *DirectlyRpcServerConfig) *DirectlyRpcServer {
-	return &DirectlyRpcServer{evolvingServer: NewEvolvingServer(&config.EvolvingServerConf), serviceMap: map[string]*service{}}
+	d := &DirectlyRpcServer{evolvingServer: NewEvolvingServer(&config.EvolvingServerConf), serviceMap: map[string]*service{}}
+	d.protocUnmarshalHandlerMap = containerx.NewConcurrentMap[string, func(in []byte, recv any) error]()
+	d.protocMarshalHandlerMap = containerx.NewConcurrentMap[string, func(recv any) ([]byte, error)]()
+	d.SetProtocUnmarshalHandler(contents.Json, func(in []byte, recv any) error {
+		return json.Unmarshal(in, recv)
+	})
+	d.SetProtocMarshalHandler(contents.Json, func(recv any) ([]byte, error) {
+		return json.Marshal(recv)
+	})
+	return d
 }
 
 // Register
@@ -73,11 +85,12 @@ func (d *DirectlyRpcServer) Run() {
 				reqv = reflect.New(tm.ReqType)
 
 				var err error
-				var command = string(reply.GetProtoc())
-				switch command {
-				case contents.Json:
-					err = json.Unmarshal(reply.GetBody(), reqv.Interface())
-				default:
+				var protoc = string(reply.GetProtoc())
+
+				unmarshalHandler, b := d.protocUnmarshalHandlerMap.Get(protoc)
+				if b {
+					err = unmarshalHandler(reply.GetBody(), reqv.Interface())
+				} else {
 					err = unknownProtocErr
 				}
 				if err != nil {
@@ -89,13 +102,12 @@ func (d *DirectlyRpcServer) Run() {
 				res := tm.method.Func.Call([]reflect.Value{ts.rcvr, reflect.Indirect(reqv)})[0].Interface()
 				if res != nil {
 					var bytes []byte
-					switch command {
-					case contents.Json:
-						bytes, err = json.Marshal(res)
-					default:
+					marshalHandler, b := d.protocMarshalHandlerMap.Get(protoc)
+					if b {
+						bytes, err = marshalHandler(res)
+					} else {
 						err = unknownProtocErr
 					}
-
 					if err != nil {
 						reply.SetBody([]byte(err.Error()))
 					} else {
@@ -107,4 +119,24 @@ func (d *DirectlyRpcServer) Run() {
 		}
 	}
 	d.evolvingServer.Start()
+}
+
+func (d *DirectlyRpcServer) SetProtocUnmarshalHandler(protoc string, handler func(in []byte, recv any) error) {
+	d.protocUnmarshalHandlerMap.Set(protoc, handler)
+	_, b := d.protocMarshalHandlerMap.Get(protoc)
+	if !b {
+		contents.RpcLogger.Warn("WARNING %s MarshalHandler is empty.", protoc)
+	} else {
+		contents.RpcLogger.Info("%s protoc both MarshalHandler and UnmarshalHandler are ready.")
+	}
+}
+
+func (d *DirectlyRpcServer) SetProtocMarshalHandler(protoc string, handler func(recv any) ([]byte, error)) {
+	d.protocMarshalHandlerMap.Set(protoc, handler)
+	_, b := d.protocUnmarshalHandlerMap.Get(protoc)
+	if !b {
+		contents.RpcLogger.Warn("WARNING %s UnmarshalHandler is empty.", protoc)
+	} else {
+		contents.RpcLogger.Info("%s protoc both MarshalHandler and UnmarshalHandler are ready.")
+	}
 }
