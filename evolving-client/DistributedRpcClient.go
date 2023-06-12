@@ -14,11 +14,6 @@ import (
 
 type ModeType string
 
-const (
-	Directly    ModeType = "directly"
-	Distributed ModeType = "distributed"
-)
-
 type DistributedRpcClient struct {
 	registerCenterConfigs []*model.EvolvingClientConfig
 	serviceInfoMap        map[string][]*model.ServiceInfo

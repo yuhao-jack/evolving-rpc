@@ -62,6 +62,12 @@ func (d *DirectlyRpcClient) ExecuteCommand(command string, req []byte, isAsync b
 	return res, nil
 }
 
+func (d *DirectlyRpcClient) ExecuteCmd(command string, req []byte, callBack func([]byte)) {
+	d.client.Execute(netx.NewDefaultMessage([]byte(command), req), func(reply netx.IMessage) {
+		callBack(reply.GetBody())
+	})
+}
+
 // Close
 //
 //	@Description: 关闭客户端

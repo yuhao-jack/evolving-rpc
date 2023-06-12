@@ -121,22 +121,36 @@ func (d *DirectlyRpcServer) Run() {
 	d.evolvingServer.Start()
 }
 
+// SetProtocUnmarshalHandler
+//
+//	@Description: 设置Unmarshal处理方法
+//	@author yuhao<154826195@qq.com>
+//	@receiver d
+//	@param protoc
+//	@param handler
 func (d *DirectlyRpcServer) SetProtocUnmarshalHandler(protoc string, handler func(in []byte, recv any) error) {
 	d.protocUnmarshalHandlerMap.Set(protoc, handler)
 	_, b := d.protocMarshalHandlerMap.Get(protoc)
 	if !b {
 		contents.RpcLogger.Warn("WARNING %s MarshalHandler is empty.", protoc)
 	} else {
-		contents.RpcLogger.Info("%s protoc both MarshalHandler and UnmarshalHandler are ready.")
+		contents.RpcLogger.Info("%s protoc both MarshalHandler and UnmarshalHandler are ready.", protoc)
 	}
 }
 
+// SetProtocMarshalHandler
+//
+//	@Description: 设置Marshal处理方法
+//	@author yuhao<154826195@qq.com>
+//	@receiver d
+//	@param protoc
+//	@param handler
 func (d *DirectlyRpcServer) SetProtocMarshalHandler(protoc string, handler func(recv any) ([]byte, error)) {
 	d.protocMarshalHandlerMap.Set(protoc, handler)
 	_, b := d.protocUnmarshalHandlerMap.Get(protoc)
 	if !b {
 		contents.RpcLogger.Warn("WARNING %s UnmarshalHandler is empty.", protoc)
 	} else {
-		contents.RpcLogger.Info("%s protoc both MarshalHandler and UnmarshalHandler are ready.")
+		contents.RpcLogger.Info("%s protoc both MarshalHandler and UnmarshalHandler are ready.", protoc)
 	}
 }
