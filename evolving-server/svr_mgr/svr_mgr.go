@@ -13,7 +13,7 @@ import (
 // ServiceMgr
 // @Description: 服务管理器，管理注册过来的服务
 type ServiceMgr struct {
-	ServiceInfoList *containerx.Set[*model.ServiceInfo]
+	ServiceInfoList containerx.ISet[*model.ServiceInfo]
 	DataPackMap     *containerx.ConcurrentMap[string, *netx.DataPack]
 	lock            sync.RWMutex
 	keepDuration    time.Duration
@@ -21,7 +21,7 @@ type ServiceMgr struct {
 
 var once sync.Once
 var serviceMgrInstance = &ServiceMgr{
-	ServiceInfoList: containerx.NewSet[*model.ServiceInfo](),
+	ServiceInfoList: containerx.NewConcurrentSet[*model.ServiceInfo](),
 	DataPackMap:     containerx.NewConcurrentMap[string, *netx.DataPack](),
 	lock:            sync.RWMutex{},
 }
@@ -37,17 +37,13 @@ func GetServiceMgrInstance() *ServiceMgr {
 			for range ticker.C {
 				serviceMgrInstance.ServiceInfoList.ForEach(func(info *model.ServiceInfo) {
 					lostTime, ok := info.AdditionalMeta[contents.LostTime.String()]
-					if ok {
-
-						if time.Since(lostTime.(time.Time)) > serviceMgrInstance.GetKeepDuration() {
-							serviceMgrInstance.lock.Lock()
-							serviceMgrInstance.ServiceInfoList.Remove(info)
-							serviceMgrInstance.lock.Unlock()
-						} else {
-							serviceMgrInstance.lock.Lock()
-							info.AdditionalMeta[contents.Status.String()] = contents.Down
-							serviceMgrInstance.lock.Unlock()
-						}
+					if !ok {
+						return
+					}
+					if time.Since(lostTime.(time.Time)) > serviceMgrInstance.GetKeepDuration() {
+						serviceMgrInstance.ServiceInfoList.Remove(info)
+					} else {
+						info.AdditionalMeta[contents.Status.String()] = contents.Down
 					}
 				})
 			}
@@ -64,8 +60,6 @@ func GetServiceMgrInstance() *ServiceMgr {
 //	@param serviceName 服务名
 //	@return serviceList 所有可用的服务的信息
 func (m *ServiceMgr) FindServiceInfosByServiceName(serviceName string) (serviceList []*model.ServiceInfo) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
 	m.ServiceInfoList.ForEach(func(info *model.ServiceInfo) {
 		if info.ServiceName == serviceName {
 			serviceList = append(serviceList, info)
@@ -124,4 +118,14 @@ func (m *ServiceMgr) AddDataPack(pack *netx.DataPack) {
 //	@param pack
 func (m *ServiceMgr) DelDataPack(pack *netx.DataPack) {
 	m.DataPackMap.Remove(pack.RemoteAddr().String())
+}
+
+// PushConfig
+//
+//	@Description: 主动推送配置给客户
+//	@author yuhao<154826195@qq.com>
+//	@Data 2023-06-27 20:41:13
+//	@receiver m
+func (m *ServiceMgr) PushConfig() {
+
 }

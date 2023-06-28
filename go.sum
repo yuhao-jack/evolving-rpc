@@ -6,3 +6,5 @@ github.com/yuhao-jack/go-log v0.0.0-20230302074839-a12ab059ec29 h1:2llxgpmQa6/rw
 github.com/yuhao-jack/go-log v0.0.0-20230302074839-a12ab059ec29/go.mod h1:s567eZ68/oRWZS85xMq/qmL2sHHym0/Qga6oW+MCUFw=
 github.com/yuhao-jack/go-toolx v0.0.0-20230301100358-980e6dc96056 h1:U5QkkEEnCQfMjo6F//JwkE89TBW7Oh6qSkgR3RhrqTo=
 github.com/yuhao-jack/go-toolx v0.0.0-20230301100358-980e6dc96056/go.mod h1:Msh/pTXpSKLRviDGiG85vLYGifVvuce7fgH6Ky8kb98=
+github.com/yuhao-jack/go-toolx v0.0.5 h1:ay5g7zlqukvdps6EZACdl7DZhv2gDt9hZAf4TydtxMM=
+github.com/yuhao-jack/go-toolx v0.0.5/go.mod h1:Msh/pTXpSKLRviDGiG85vLYGifVvuce7fgH6Ky8kb98=

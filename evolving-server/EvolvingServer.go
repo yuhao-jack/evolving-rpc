@@ -118,7 +118,9 @@ func (s *EvolvingServer) connHandler(conn *net.TCPConn) {
 	for {
 		message, err := dataPack.UnPackMessage()
 		if err != nil {
-			contents.RpcLogger.Error(err.Error())
+			if err.Error() != "EOF" {
+				contents.RpcLogger.Error(err.Error())
+			}
 			break
 		}
 		command := string(message.GetCommand())

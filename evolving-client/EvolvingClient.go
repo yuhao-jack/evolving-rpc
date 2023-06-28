@@ -8,6 +8,7 @@ import (
 	"github.com/yuhao-jack/evolving-rpc/model"
 	"github.com/yuhao-jack/go-toolx/fun"
 	"github.com/yuhao-jack/go-toolx/netx"
+	"net"
 	"sync"
 	"time"
 )
@@ -168,7 +169,10 @@ func (c *EvolvingClient) processMsg() {
 	for !c.closeFlag && c.dataPack != nil {
 		message, err := c.dataPack.UnPackMessage()
 		if err != nil {
-			contents.RpcLogger.Error(err.Error())
+			_, ok := err.(*net.OpError)
+			if !ok {
+				contents.RpcLogger.Error(err.Error())
+			}
 			break
 		}
 		f := c.GetCommand(string(message.GetCommand()))
